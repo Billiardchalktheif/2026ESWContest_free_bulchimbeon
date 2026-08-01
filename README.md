@@ -7,7 +7,8 @@
 - `발전가능성_확장방안_정리.md` — 실물 규모 확장 시 설계 변경 방향
 - `불침번_팀원용_이해자료_최종.md` — 프로젝트 취지·로직을 쉽게 풀어쓴 내부 참고자료
 - `앱_통합_가이드.md` — 텔레그램 알림봇 + PWA 연동 방법
-
+- `bulchimbeon_animatic.html` - 애니매틱으로 만든 초기 구성안
+- **시연영상 기획안**: [바로 재생하기](https://billiardchalktheif.github.io/2026ESWContest_free_bulchimbeon/docs/bulchimbeon_animatic.html) 
 ## guide/ — 실험·조립 가이드
 - `테스트베드_조립가이드.md` — 5개 모듈 조립 순서 총정리
 - `자탐_실험가이드.md` — 자탐1(차동식)·자탐2(광전식) 실험 프로토콜
@@ -39,6 +40,7 @@
   - 불침번_하드웨어_조감도_핀배치_v3.pdf
   - 소프트웨어_구상안.md
   - 앱_통합_가이드.md
+  - bulchimbeon_animatic.html
 
 - guide/
   - 테스트베드_조립가이드.md
