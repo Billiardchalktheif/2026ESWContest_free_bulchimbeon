@@ -35,14 +35,14 @@
 
 ## 폴더 구조
 - docs/
+  - bulchimbeon_animatic.html
   - 개발_장애요인_해결방안_정리.md
   - 발전가능성_확장방안_정리.md
   - 불침번_팀원용_이해자료_최종.md
   - 불침번_하드웨어_조감도_핀배치_v3.pdf
   - 소프트웨어_구상안.md
   - 앱_통합_가이드.md
-  - bulchimbeon_animatic.html
-
+  
 - guide/
   - 테스트베드_조립가이드.md
   - 자탐_실험가이드.md
