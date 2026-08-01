@@ -28,9 +28,6 @@
   - 자탐_실험가이드.md
   - 유도등_실험가이드.md
 
-- media/
-  - 예시 영상 (file:///C:/Users/mugi4/Desktop/%EA%B0%80%EC%B2%9C%EB%8C%80/%EC%9E%84%EB%B2%A0%EB%94%94%EB%93%9C%20%EA%B2%BD%EC%A7%84%EB%8C%80%ED%9A%8C/(C)%20%EB%B6%88%EC%B9%A8%EB%B2%88_%EC%8B%9C%EC%97%B0%EC%98%81%EC%83%81_%EC%95%A0%EB%8B%88%EB%A7%A4%ED%8B%B1%20260801%20V2.html)
-
 - server/
   - (소스코드)
  
