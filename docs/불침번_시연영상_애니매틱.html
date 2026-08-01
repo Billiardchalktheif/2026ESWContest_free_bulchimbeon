@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>불침번 시연영상 애니매틱 · 180초 (프롤로그 + 사운드)</title>
+<style>
+:root{
+  --bg:#0B1220; --panel:#141F38; --panel2:#0F1829; --line:#25334F;
+  --gold:#E0A800; --gold-dim:#8A6D14; --navy:#1F3864;
+  --alarm:#E05252; --ok:#3FB27F; --text:#E8ECF5; --mute:#8090AE;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,"D2Coding",monospace;
+  --sans:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh}
+.masthead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+  padding:16px 22px;border-bottom:1px solid var(--line)}
+.masthead h1{font-size:15px;font-weight:800;letter-spacing:-.01em}
+.masthead .eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.18em;
+  color:var(--gold);text-transform:uppercase}
+.masthead .note{font-size:11.5px;color:var(--mute);margin-left:auto}
+
+.stage{flex:1;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.85fr);
+  gap:18px;padding:18px 22px;align-items:start}
+@media(max-width:900px){.stage{grid-template-columns:1fr}}
+
+.frame{position:relative;aspect-ratio:16/9;background:#070C16;
+  border:1px solid var(--line);overflow:hidden}
+.frame svg{position:absolute;inset:0;width:100%;height:100%;display:none}
+.frame svg.on{display:block}
+.tc{position:absolute;top:10px;right:12px;font-family:var(--mono);font-size:11px;
+  color:var(--gold);letter-spacing:.06em;background:rgba(7,12,22,.72);padding:3px 7px;z-index:5}
+.cutbadge{position:absolute;top:10px;left:12px;font-family:var(--mono);font-size:11px;
+  color:var(--text);background:var(--navy);padding:3px 8px;letter-spacing:.08em;z-index:5}
+.sub{position:absolute;left:0;right:0;bottom:26px;text-align:center;padding:0 8%;
+  z-index:6;pointer-events:none}
+.sub span{display:inline-block;background:rgba(7,12,22,.82);padding:6px 14px;
+  font-size:clamp(11px,1.55vw,17px);font-weight:600;line-height:1.5;border-bottom:2px solid var(--gold)}
+.safe{position:absolute;inset:5%;border:1px dashed rgba(224,168,0,.16);z-index:4;pointer-events:none}
+.audioflag{position:absolute;left:12px;bottom:10px;z-index:7;font-family:var(--mono);
+  font-size:10px;color:var(--gold);background:rgba(7,12,22,.8);padding:4px 8px;
+  border:1px solid var(--gold-dim)}
+.audioflag[hidden]{display:none}
+
+.transport{margin-top:14px}
+.tbar{display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+button.play{background:var(--gold);color:#0B1220;border:0;width:46px;height:46px;
+  font-size:16px;cursor:pointer;font-family:var(--mono);font-weight:700}
+button.play:focus-visible,.strip:focus-visible,.tgl:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.clock{font-family:var(--mono);font-size:20px;letter-spacing:.04em}
+.clock em{color:var(--mute);font-style:normal;font-size:14px}
+.tgl{background:transparent;border:1px solid var(--line);color:var(--mute);
+  font-family:var(--mono);font-size:11px;padding:8px 12px;cursor:pointer}
+.tgl[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
+.speed{margin-left:auto;display:flex;gap:6px}
+.speed button{background:transparent;border:1px solid var(--line);color:var(--mute);
+  font-family:var(--mono);font-size:11px;padding:5px 9px;cursor:pointer}
+.speed button[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
+
+.strips{display:flex;gap:2px;height:74px;position:relative}
+.strip{position:relative;background:var(--panel2);border:1px solid var(--line);
+  border-top:2px solid var(--line);cursor:pointer;overflow:hidden;padding:6px 7px;
+  text-align:left;color:var(--mute);font-family:inherit;transition:border-color .15s}
+.strip:hover{border-color:var(--gold-dim)}
+.strip[data-active="true"]{border-top-color:var(--gold);background:var(--panel)}
+.strip[data-pro="true"]{background:#1A1430;border-color:#3A2C5E}
+.strip[data-pro="true"][data-active="true"]{background:#241B42}
+.strip .no{font-family:var(--mono);font-size:10px;color:var(--gold);display:block}
+.strip .nm{font-size:10.5px;font-weight:600;color:var(--text);line-height:1.25;
+  display:block;margin-top:2px;overflow:hidden}
+.strip .narbar{position:absolute;left:0;bottom:0;height:7px;background:var(--gold-dim)}
+.strip .narbar.over{background:var(--alarm)}
+.strip .dur{position:absolute;right:6px;bottom:9px;font-family:var(--mono);font-size:9.5px;color:var(--mute)}
+.playhead{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--gold);
+  pointer-events:none;box-shadow:0 0 8px rgba(224,168,0,.8)}
+.legend{display:flex;gap:16px;margin-top:8px;font-size:10.5px;color:var(--mute);
+  font-family:var(--mono);flex-wrap:wrap}
+.legend i{display:inline-block;width:16px;height:6px;background:var(--gold-dim);margin-right:5px;vertical-align:middle}
+.legend i.o{background:var(--alarm)}
+
+.side{background:var(--panel);border:1px solid var(--line);position:sticky;top:18px}
+.side header{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:9px}
+.side header .n{font-family:var(--mono);color:var(--gold);font-size:13px;font-weight:700}
+.side header .t{font-size:13.5px;font-weight:700}
+.side header .d{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--mute)}
+.blk{padding:13px 16px;border-bottom:1px solid var(--line)}
+.blk:last-child{border-bottom:0}
+.blk h3{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--gold);
+  text-transform:uppercase;margin-bottom:7px;font-weight:600}
+.blk p{font-size:12.5px;line-height:1.68;color:#CDD6E6}
+.blk p.nar{color:var(--text);font-weight:500}
+.fit{margin-top:9px;font-family:var(--mono);font-size:10.5px;display:flex;gap:8px;
+  align-items:center;color:var(--mute);flex-wrap:wrap}
+.fit b{color:var(--ok);font-weight:600}
+.fit b.tight{color:var(--gold)}
+.fit b.over{color:var(--alarm)}
+.tip{font-size:11.5px;line-height:1.6;color:var(--mute)}
+.foot{padding:12px 22px 20px;font-size:11px;color:var(--mute);border-top:1px solid var(--line);line-height:1.7}
+.foot b{color:var(--gold);font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <span class="eyebrow">Animatic</span>
+  <h1>불침번 — 3분 시연영상 가편집본</h1>
+  <span class="note">촬영 전 검증용 · 사운드는 절차적 합성음(실제 음원 아님)</span>
+</div>
+
+<div class="stage">
+  <div>
+    <div class="frame" id="frame">
+      <div class="safe"></div>
+      <div class="cutbadge" id="badge">#0</div>
+      <div class="tc" id="tc">00:00:00</div>
+      <div class="audioflag" id="aflag">🔇 소리 꺼짐 — 아래 버튼으로 켜세요</div>
+      <div class="sub" id="sub"></div>
+    </div>
+
+    <div class="transport">
+      <div class="tbar">
+        <button class="play" id="play" aria-label="재생">▶</button>
+        <div class="clock"><span id="cur">0:00</span><em> / 3:00</em></div>
+        <button class="tgl" id="snd" aria-pressed="false">🔇 소리 켜기</button>
+        <div class="speed">
+          <button data-s="0.5" aria-pressed="false">0.5×</button>
+          <button data-s="1" aria-pressed="true">1×</button>
+          <button data-s="2" aria-pressed="false">2×</button>
+        </div>
+      </div>
+      <div class="strips" id="strips"><div class="playhead" id="ph"></div></div>
+      <div class="legend">
+        <span><i></i>내레이션 점유 구간 (5.5음절/초 기준)</span>
+        <span><i class="o"></i>컷 길이 초과 — 대사 축약 필요</span>
+      </div>
+    </div>
+  </div>
+
+  <aside class="side">
+    <header>
+      <span class="n" id="sN">#0</span>
+      <span class="t" id="sT">프롤로그</span>
+      <span class="d" id="sD">10초</span>
+    </header>
+    <div class="blk"><h3>화면</h3><p id="sScreen"></p></div>
+    <div class="blk"><h3>내레이션</h3><p class="nar" id="sNar"></p><div class="fit" id="sFit"></div></div>
+    <div class="blk"><h3>사운드</h3><p class="tip" id="sSnd"></p></div>
+    <div class="blk"><h3>촬영 요령</h3><p class="tip" id="sTip"></p></div>
+  </aside>
+</div>
+
+<div class="foot">
+  스페이스바 재생/정지 · ←→ 5초 이동 · 컷 스트립 클릭 시 이동.
+  <b>사운드 주의:</b> 여기 소리는 브라우저에서 즉석 합성한 <b>타이밍 참고용 가이드 트랙</b>입니다.
+  수상작 소스는 전체 공개되므로, 실제 영상에는 반드시 <b>저작권 문제가 없는 음원</b>(CC0 / 로열티프리)을 별도로 확보해 쓰세요.
+</div>
+
+<script>
+"use strict";
+
+/* ============ 컷 데이터 (총 180초) ============ */
+const CUTS = [
+ {n:"#0", t0:0, t1:10, title:"프롤로그 — 군대 불침번", pro:true,
+  screen:"새벽 2시 생활관. 손전등을 든 병사가 꾸벅꾸벅 졸다 화들짝 깨기를 반복 → 결국 고개가 푹 떨어지고 「Zzz」 → 정의 자막 「불침번(不寢番) : 밤새 자지 않고 지키는 사람」 → 펀치라인 「…사람은, 잡니다」 → 병사가 스르르 사라진 자리에 센서 노드 LED가 켜짐",
+  nar:"",
+  snd:"괘종시계 초침(1초 간격) → 꾸벅일 때 코고는 소리 → 화들짝 깰 때 짧은 놀람음 → 고개 떨어질 때 둔탁한 '툭' → 노드 점등 시 맑은 기동음. 대사 없이 효과음만으로 진행",
+  tip:"실사 촬영보다 2D 애니메이션(또는 종이인형 스톱모션)이 유리합니다. 코믹 톤이지만 군을 희화화하지 않도록 표정은 순하게, 3초 안에 웃음 포인트가 나와야 합니다. 계급장·부대마크 등 식별 요소는 넣지 마세요."},
+
+ {n:"#1", t0:10, t1:24, title:"문제 제기",
+  screen:"소방설비 점검 장면 → 달력이 빠르게 넘어가며 「361」 카운트 → 정지, 붉은 자막",
+  nar:"소방설비는 1년에 한두 번 점검합니다. 그런데 설비는 점검하는 그날이 아니라, 그 사이에 서서히 고장 납니다.",
+  snd:"프롤로그의 초침 소리를 그대로 이어받아 연결 → 저음 드론 서서히 진입 → 붉은 자막에서 짧은 스팅",
+  tip:"프롤로그의 시계 소리를 끊지 말고 이어가면 두 컷이 하나로 붙습니다. 숫자 361을 화면 중앙에 크게."},
+
+ {n:"#2", t0:24, t1:39, title:"솔루션 선언",
+  screen:"테스트베드 전경 롱샷 → 자탐·수계·가스계·소화기·유도등 순차 줌인, 라벨 오버레이",
+  nar:"불침번은 그 361일을 센서로 대신 지킵니다. 관리사를 대체하는 것이 아니라, 관리사가 볼 수 없는 시간을 채웁니다.",
+  snd:"어두운 톤에서 밝은 톤으로 전환되는 코드 진입. 모듈이 하나씩 켜질 때마다 짧은 팝음",
+  tip:"테스트베드는 반드시 정돈 후 촬영. 노출된 배선은 완성도 점수에 그대로 반영됩니다."},
+
+ {n:"#3", t0:39, t1:54, title:"시스템 구조",
+  screen:"센서 → ESP32(노드 내부 판정 아이콘 점등) → 서버 → 대시보드. 노드 판정부를 금색 강조",
+  nar:"각 노드가 스스로 판단합니다. ESP32에 경량 추론 모델을 직접 올려, 서버 없이도 이상을 먼저 걸러냅니다.",
+  snd:"데이터 전송을 표현하는 짧은 디지털 블립 4회 + 낮은 펄스 베이스",
+  tip:"이 15초가 「임베디드SW 작품임」을 증명하는 구간. TFLite Micro·FreeRTOS 키워드를 자막으로 반드시 노출."},
+
+ {n:"#4", t0:54, t1:124, title:"핵심 시연 — 자동 성능시험 + 자가라벨링",
+  screen:"4-1 밸브 자동 폐쇄 → 체절압 측정 / 4-2 밸브 개방 → 부하압 측정 → 합격 / 4-3 전류 파형에 라벨 자동 부착 → 데이터셋 적재 → 전류만으로 상태 분류",
+  nar:"성능시험은 1년에 한두 번뿐입니다. 그러나 그 순간, 압력센서가 지금이 체절인지 부하인지를 객관적으로 확정합니다. 우리는 이 순간을 놓치지 않고, 전류 파형에 정답 라벨을 자동으로 붙입니다. 시험이 끝난 뒤에도, 이 라벨로 학습한 모델이 전류만 보고 펌프 상태를 계속 감시합니다.",
+  snd:"밸브 작동음(둔탁한 클렁) → 펌프 험 지속 → 밸브 개방 후 물 흐르는 소리 → 합격 시 상승 3화음 → 라벨 부착 시 스냅음 2회 → 데이터셋 적재 휘익",
+  tip:"영상 전체의 클라이맥스. 밸브 동작음과 물소리는 반드시 현장 동시녹음으로 확보하세요. 4-3의 라벨 부착은 편집으로 시각화 필수."},
+
+ {n:"#5", t0:124, t1:155, title:"확장 시연 — 4개 설비",
+  screen:"자탐2 발연원 투입 → 판별 / 가스계 중량 제거 → 수치 하강 / 소화기 들어올림 → 즉시 부저 / 유도등 전원 차단 → 점등 유지",
+  nar:"같은 원리를 나머지 설비에도 적용했습니다. 기준은 모두 법정 기준에서 가져왔습니다.",
+  snd:"설비마다 성격이 다른 짧은 효과음 — 연기 퍼짐, 중량 하강음, 소화기 경보 부저, 전원 차단 클릭",
+  tip:"각 컷마다 「사람이 물리적으로 뭔가를 한다 → 화면이 즉시 반응한다」 구조 유지. 대시보드만 보여주는 컷은 금지."},
+
+ {n:"#6", t0:155, t1:175, title:"예측 시각화 — 타임랩스",
+  screen:"타임랩스 모드 진입 → 회귀선이 기준선에 닿는 지점에서 정지, 「D-47」 → 스마트폰 알림",
+  nar:"그리고 이것이 불침번의 최종 목적입니다. 고장이 난 뒤가 아니라, 고장 나기 47일 전에 알립니다.",
+  snd:"고속 재생을 표현하는 상승 휘익 → 기준선 도달 순간 임팩트 → 알림 도착음",
+  tip:"「시연용 타임랩스」임을 자막으로 반드시 명시. 미표기 시 조작 의혹, 명시하면 정직성으로 평가됩니다."},
+
+ {n:"#7", t0:175, t1:180, title:"클로징",
+  screen:"테스트베드 전경 + 팀명 타이포 → GitHub 주소",
+  nar:"",
+  snd:"마무리 화음 1회 후 여운, 자연스러운 페이드아웃",
+  tip:"마지막 5초는 정지컷. 팀명과 저장소 주소가 또렷하게 읽히면 충분합니다."}
+];
+
+/* ============ 자막 ============ */
+const SUBS = [
+ [0.8, 4.5,  "02:00 — 생활관"],
+ [4.9, 7.0,  "불침번 (不寢番) : 밤새 자지 않고 지키는 사람"],
+ [7.2, 8.5,  "…사람은, 잡니다"],
+ [8.7, 9.95, "그래서, 잠들지 않는 불침번을 만들었습니다"],
+
+ [11.0,16.0, "작동점검 연 1회 · 종합점검 연 1~2회"],
+ [16.5,20.5, "감시 공백 361일"],
+ [21.0,23.8, "이 기간, 아무도 보지 않습니다"],
+
+ [25.0,31.0, "상시 소방설비 점검 시스템 「불침번」"],
+ [31.5,38.5, "5개 설비 · 상시 감시 · 사전 예측"],
+
+ [40.0,47.0, "TFLite Micro 온디바이스 추론 · FreeRTOS 태스크 분리"],
+ [47.5,53.5, "노드가 판단하고, 서버가 예측한다"],
+
+ [56.0,64.0, "성능시험 실행 — 솔레노이드밸브 자동 폐쇄"],
+ [65.0,73.0, "체절압 측정 완료 — 정격 대비 128% (기준 140% 이하)"],
+ [76.0,84.0, "밸브 자동 개방 — 부하 상태 전환"],
+ [85.0,93.0, "부하압 측정 완료 — 정격 대비 71% (기준 65% 이상) · 합격"],
+ [96.0,107.0,"이 순간의 전류 파형에 「체절 / 부하」 라벨 자동 부여"],
+ [109.0,123.0,"물리 기준시험 = AI 학습데이터의 자동 라벨러 · 사람이 라벨링하지 않는다"],
+
+ [125.0,132.0,"자탐2 — 노드에서 직접 추론 · 판별 정확도 OO%"],
+ [133.5,139.5,"가스계 — CO2 중량손실 10% 기준 (점검관리 매뉴얼)"],
+ [140.5,147.5,"소화기 — 이탈 감지 OOms · 딥슬립 소비전류 OOµA"],
+ [148.5,154.5,"유도등 — 비상전원 20분 기준 대비 잔여 예측"],
+
+ [157.0,166.0,"※ 시연을 위한 시간압축 재생 모드 · 회귀분석 기반 예측"],
+ [167.0,174.0,"고장 47일 전에 알립니다"],
+ [176.0,180.0,"2026ESWContest_free_불침번"]
+];
+
+/* ============ 내레이션 분량 ============ */
+const RATE=5.5;
+function syl(s){let c=0;for(const ch of s){const u=ch.codePointAt(0);
+  if(u>=0xAC00&&u<=0xD7A3)c++;else if(/[0-9]/.test(ch))c++;else if(/[A-Za-z]/.test(ch))c+=0.5;}return Math.round(c);}
+CUTS.forEach(c=>{c.dur=c.t1-c.t0;c.syl=syl(c.nar);c.narSec=+(c.syl/RATE).toFixed(1);
+  c.ratio=c.dur?c.narSec/c.dur:0;});
+
+/* ============ 컷 스트립 ============ */
+const TOTAL=180, strips=document.getElementById('strips');
+CUTS.forEach(c=>{
+  const b=document.createElement('button');
+  b.className='strip'; b.style.flex=c.dur;
+  if(c.pro) b.setAttribute('data-pro','true');
+  b.setAttribute('aria-label',c.n+' '+c.title);
+  const over=c.ratio>1;
+  b.innerHTML='<span class="no">'+c.n+'</span><span class="nm">'+
+    c.title.replace(/ — .*/,'')+'</span><span class="dur">'+c.dur+'s</span>'+
+    '<span class="narbar'+(over?' over':'')+'" style="width:'+Math.min(100,c.ratio*100).toFixed(1)+'%"></span>';
+  b.onclick=()=>seek(c.t0+0.05);
+  strips.appendChild(b);
+});
+const stripEls=[...strips.querySelectorAll('.strip')];
+
+/* ============ SVG 씬 ============ */
+const NS="http://www.w3.org/2000/svg", frame=document.getElementById('frame'), scenes=[];
+function mkScene(inner){
+  const s=document.createElementNS(NS,'svg');
+  s.setAttribute('viewBox','0 0 1280 720');
+  s.setAttribute('preserveAspectRatio','xMidYMid slice');
+  s.innerHTML=inner; frame.insertBefore(s,frame.firstChild); scenes.push(s); return s;
+}
+const G='#E0A800',TX='#E8ECF5',MU='#8090AE',AL='#E05252',OK='#3FB27F',LN='#25334F';
+
+/* --- 씬0 : 프롤로그 (군대 불침번) --- */
+const s0=mkScene(`
+ <defs>
+   <linearGradient id="pMoon" x1="0" y1="0" x2="0" y2="1">
+     <stop offset="0%" stop-color="#1B2A4A"/><stop offset="100%" stop-color="#0A1120"/>
+   </linearGradient>
+ </defs>
+ <rect width="1280" height="720" fill="url(#pMoon)"/>
+ <!-- 창문 달빛 -->
+ <rect x="900" y="70" width="220" height="180" fill="#22355C" opacity=".55"/>
+ <line x1="1010" y1="70" x2="1010" y2="250" stroke="#0A1120" stroke-width="6"/>
+ <line x1="900" y1="160" x2="1120" y2="160" stroke="#0A1120" stroke-width="6"/>
+ <circle cx="1065" cy="118" r="26" fill="#DFE6F5" opacity=".8"/>
+ <!-- 2단 침대 실루엣 -->
+ <g opacity=".5" fill="#0D1526">
+   <rect x="60" y="300" width="300" height="26"/><rect x="60" y="440" width="300" height="26"/>
+   <rect x="60" y="300" width="16" height="230"/><rect x="344" y="300" width="16" height="230"/>
+   <rect x="80" y="272" width="150" height="30" rx="14" fill="#152039"/>
+   <rect x="80" y="412" width="170" height="30" rx="14" fill="#152039"/>
+ </g>
+ <!-- 시계 -->
+ <g transform="translate(1150,330)">
+   <rect x="-84" y="-40" width="168" height="80" rx="8" fill="#0A1120" stroke="${LN}" stroke-width="2"/>
+   <text id="p0clock" x="0" y="16" fill="#5BE38B" font-size="46" font-weight="700"
+     text-anchor="middle" font-family="monospace">02:00</text>
+ </g>
+ <!-- 병사 -->
+ <g id="p0sol" transform="translate(560,330)">
+   <g id="p0arm">
+     <rect x="34" y="76" width="96" height="26" rx="13" fill="#33456B"/>
+     <rect x="122" y="70" width="52" height="38" rx="7" fill="#54648A"/>
+     <polygon points="174,89 560,-10 560,196" fill="${G}" opacity=".14"/>
+     <circle cx="176" cy="89" r="11" fill="#FFF0BF" opacity=".9"/>
+   </g>
+   <rect x="-56" y="56" width="112" height="158" rx="14" fill="#33456B"/>
+   <rect x="-56" y="86" width="112" height="10" fill="#22314F"/>
+   <g id="p0head">
+     <circle cx="0" cy="4" r="48" fill="#E2BE99"/>
+     <path d="M -54 -12 L 54 -12 L 42 -46 L -42 -46 Z" fill="#3E5A3E"/>
+     <rect x="-58" y="-14" width="116" height="11" rx="5" fill="#2C4430"/>
+     <path id="p0eyeL" d="M -24 6 q 11 -9 22 0" stroke="#3A2A1A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+     <path id="p0eyeR" d="M 2 6 q 11 -9 22 0" stroke="#3A2A1A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+     <ellipse id="p0mouth" cx="0" cy="30" rx="9" ry="6" fill="#8A4A3C"/>
+   </g>
+ </g>
+ <!-- Zzz -->
+ <g id="p0zzz" opacity="0" fill="${TX}" font-weight="800" font-family="monospace">
+   <text x="640" y="250" font-size="34" opacity=".9">z</text>
+   <text x="676" y="212" font-size="46" opacity=".7">Z</text>
+   <text x="726" y="168" font-size="60" opacity=".5">Z</text>
+ </g>
+ <!-- 센서 노드 -->
+ <g id="p0node" opacity="0" transform="translate(560,352)">
+   <rect x="-96" y="-64" width="192" height="140" rx="10" fill="#101A2E" stroke="${G}" stroke-width="3"/>
+   <text x="0" y="-16" fill="${TX}" font-size="28" font-weight="700" text-anchor="middle">ESP32</text>
+   <text x="0" y="16" fill="${MU}" font-size="15" text-anchor="middle">NODE-01</text>
+   <circle id="p0led" cx="0" cy="50" r="10" fill="${G}"/>
+   <text x="0" y="112" fill="${G}" font-size="19" text-anchor="middle" letter-spacing="2">ON DUTY</text>
+ </g>`);
+const p0={clock:s0.querySelector('#p0clock'),sol:s0.querySelector('#p0sol'),arm:s0.querySelector('#p0arm'),
+  head:s0.querySelector('#p0head'),eyeL:s0.querySelector('#p0eyeL'),eyeR:s0.querySelector('#p0eyeR'),
+  mouth:s0.querySelector('#p0mouth'),zzz:s0.querySelector('#p0zzz'),node:s0.querySelector('#p0node'),
+  led:s0.querySelector('#p0led')};
+
+/* --- 씬1 : 361 --- */
+let cal='';
+for(let r=0;r<11;r++)for(let q=0;q<28;q++)
+  cal+=`<rect class="dcell" x="${190+q*33}" y="${120+r*38}" width="26" height="30" fill="#131E33"/>`;
+const s1=mkScene(`
+ <rect width="1280" height="720" fill="#070C16"/>
+ <g>${cal}</g>
+ <rect x="0" y="290" width="1280" height="180" fill="#070C16" opacity=".9"/>
+ <text id="s1num" x="640" y="420" fill="${G}" font-size="190" font-weight="800" text-anchor="middle" font-family="monospace">0</text>
+ <text x="640" y="470" fill="${MU}" font-size="26" text-anchor="middle" letter-spacing="6">일</text>
+ <g id="s1red" opacity="0">
+   <rect x="290" y="520" width="700" height="62" fill="${AL}"/>
+   <text x="640" y="562" fill="#fff" font-size="30" font-weight="800" text-anchor="middle">이 기간, 아무도 보지 않습니다</text>
+ </g>`);
+const s1cells=[...s1.querySelectorAll('.dcell')],s1num=s1.querySelector('#s1num'),s1red=s1.querySelector('#s1red');
+
+/* --- 씬2 --- */
+const MODS=[["자탐","차동식·광전식"],["수계","펌프성능시험"],["가스계","CO2 중량"],["소화기","이탈 감지"],["유도등","배터리 열화"]];
+let m2='';MODS.forEach((m,i)=>{const x=90+i*225;
+ m2+=`<g class="mod" opacity="0"><rect x="${x}" y="200" width="195" height="150" fill="#101A2E" stroke="${G}" stroke-width="2"/>
+ <text x="${x+97}" y="272" fill="${TX}" font-size="30" font-weight="700" text-anchor="middle">${m[0]}</text>
+ <text x="${x+97}" y="306" fill="${MU}" font-size="17" text-anchor="middle">${m[1]}</text></g>`;});
+const s2=mkScene(`<rect width="1280" height="720" fill="#070C16"/>
+ <rect x="60" y="160" width="1160" height="240" fill="none" stroke="${LN}"/>${m2}
+ <g id="s2t" opacity="0"><text x="640" y="500" fill="${TX}" font-size="52" font-weight="800" text-anchor="middle">불침번</text>
+ <text x="640" y="545" fill="${G}" font-size="21" text-anchor="middle" letter-spacing="3">관리사가 볼 수 없는 361일을 지킵니다</text></g>`);
+const s2mods=[...s2.querySelectorAll('.mod')],s2t=s2.querySelector('#s2t');
+
+/* --- 씬3 --- */
+const s3=mkScene(`<rect width="1280" height="720" fill="#070C16"/>
+ <rect x="90" y="290" width="200" height="140" fill="#101A2E" stroke="${LN}" stroke-width="2"/>
+ <text x="190" y="350" fill="${TX}" font-size="24" text-anchor="middle" font-weight="700">센서</text>
+ <text x="190" y="382" fill="${MU}" font-size="15" text-anchor="middle">NTC · MQ-2 · CT</text>
+ <rect id="s3node" x="440" y="270" width="230" height="180" fill="#101A2E" stroke="${G}" stroke-width="2"/>
+ <text x="555" y="325" fill="${TX}" font-size="25" text-anchor="middle" font-weight="700">ESP32</text>
+ <text x="555" y="358" fill="${G}" font-size="16" text-anchor="middle">온디바이스 추론</text>
+ <text x="555" y="386" fill="${MU}" font-size="14" text-anchor="middle">TFLite Micro</text>
+ <circle id="s3pulse" cx="555" cy="418" r="9" fill="${G}" opacity="0"/>
+ <rect x="820" y="290" width="180" height="140" fill="#101A2E" stroke="${LN}" stroke-width="2"/>
+ <text x="910" y="345" fill="${TX}" font-size="22" text-anchor="middle" font-weight="700">서버</text>
+ <text x="910" y="376" fill="${MU}" font-size="14" text-anchor="middle">추세·이력</text>
+ <rect x="1090" y="300" width="120" height="120" fill="#101A2E" stroke="${LN}" stroke-width="2"/>
+ <text x="1150" y="368" fill="${TX}" font-size="19" text-anchor="middle">대시보드</text>
+ <line x1="292" y1="360" x2="436" y2="360" stroke="${LN}" stroke-width="2"/>
+ <line x1="672" y1="360" x2="816" y2="360" stroke="${LN}" stroke-width="2"/>
+ <line x1="1002" y1="360" x2="1086" y2="360" stroke="${LN}" stroke-width="2"/>
+ <circle id="s3p1" cx="292" cy="360" r="7" fill="${G}"/>
+ <circle id="s3p2" cx="672" cy="360" r="7" fill="${G}" opacity="0"/>
+ <text x="640" y="560" fill="${MU}" font-size="19" text-anchor="middle">판정은 노드에서, 예측은 서버에서</text>`);
+const s3node=s3.querySelector('#s3node'),s3pulse=s3.querySelector('#s3pulse'),
+      s3p1=s3.querySelector('#s3p1'),s3p2=s3.querySelector('#s3p2');
+
+/* --- 씬4 --- */
+const s4=mkScene(`<rect width="1280" height="720" fill="#070C16"/>
+ <text x="60" y="70" fill="${G}" font-size="16" letter-spacing="4" font-family="monospace">PUMP PERFORMANCE TEST</text>
+ <g transform="translate(180,250)">
+   <circle cx="0" cy="0" r="62" fill="none" stroke="${LN}" stroke-width="3"/>
+   <line id="s4valve" x1="-44" y1="0" x2="44" y2="0" stroke="${G}" stroke-width="11" stroke-linecap="round"/>
+   <text x="0" y="105" fill="${MU}" font-size="17" text-anchor="middle">니들밸브</text>
+   <text id="s4vst" x="0" y="132" fill="${TX}" font-size="19" text-anchor="middle" font-weight="700">대기</text>
+ </g>
+ <g transform="translate(420,250)">
+   <circle cx="0" cy="0" r="86" fill="#101A2E" stroke="${LN}" stroke-width="3"/>
+   <path d="M -70 22 A 74 74 0 1 1 70 22" fill="none" stroke="${LN}" stroke-width="4"/>
+   <line id="s4ndl" x1="0" y1="0" x2="0" y2="-62" stroke="${AL}" stroke-width="5" stroke-linecap="round"/>
+   <circle cx="0" cy="0" r="7" fill="${TX}"/>
+   <text id="s4pct" x="0" y="118" fill="${TX}" font-size="27" font-weight="800" text-anchor="middle" font-family="monospace">0%</text>
+   <text x="0" y="146" fill="${MU}" font-size="15" text-anchor="middle">정격토출압 대비</text>
+ </g>
+ <g transform="translate(600,140)">
+   <rect x="0" y="0" width="620" height="220" fill="#0B1220" stroke="${LN}"/>
+   <text x="12" y="24" fill="${MU}" font-size="14">압력 (성능시험)</text>
+   <line x1="0" y1="42" x2="620" y2="42" stroke="${AL}" stroke-dasharray="5 5" opacity=".6"/>
+   <text x="612" y="34" fill="${AL}" font-size="12" text-anchor="end">140%</text>
+   <line x1="0" y1="172" x2="620" y2="172" stroke="${OK}" stroke-dasharray="5 5" opacity=".6"/>
+   <text x="612" y="192" fill="${OK}" font-size="12" text-anchor="end">65%</text>
+   <polyline id="s4pline" fill="none" stroke="${G}" stroke-width="3" points=""/>
+ </g>
+ <g transform="translate(600,400)">
+   <rect x="0" y="0" width="620" height="200" fill="#0B1220" stroke="${LN}"/>
+   <text x="12" y="24" fill="${MU}" font-size="14">CT클램프 전류 파형</text>
+   <polyline id="s4cline" fill="none" stroke="#6FA8FF" stroke-width="2" points=""/>
+   <g id="s4tag1" opacity="0"><rect x="70" y="150" width="96" height="30" fill="${G}"/>
+     <text x="118" y="172" fill="#0B1220" font-size="16" font-weight="800" text-anchor="middle">체절</text></g>
+   <g id="s4tag2" opacity="0"><rect x="330" y="150" width="96" height="30" fill="${G}"/>
+     <text x="378" y="172" fill="#0B1220" font-size="16" font-weight="800" text-anchor="middle">부하</text></g>
+ </g>
+ <g id="s4pass" opacity="0" transform="translate(180,470)">
+   <rect x="-100" y="-34" width="200" height="68" fill="none" stroke="${OK}" stroke-width="4"/>
+   <text x="0" y="12" fill="${OK}" font-size="34" font-weight="800" text-anchor="middle">합 격</text></g>
+ <g id="s4ds" opacity="0" transform="translate(180,470)">
+   <rect x="-130" y="-46" width="260" height="92" fill="#101A2E" stroke="${G}" stroke-width="2"/>
+   <text x="0" y="-12" fill="${G}" font-size="15" text-anchor="middle">라벨링 데이터셋</text>
+   <text id="s4dsn" x="0" y="22" fill="${TX}" font-size="30" font-weight="800" text-anchor="middle" font-family="monospace">0</text></g>`);
+const s4valve=s4.querySelector('#s4valve'),s4vst=s4.querySelector('#s4vst'),s4ndl=s4.querySelector('#s4ndl'),
+ s4pct=s4.querySelector('#s4pct'),s4pline=s4.querySelector('#s4pline'),s4cline=s4.querySelector('#s4cline'),
+ s4tag1=s4.querySelector('#s4tag1'),s4tag2=s4.querySelector('#s4tag2'),s4pass=s4.querySelector('#s4pass'),
+ s4ds=s4.querySelector('#s4ds'),s4dsn=s4.querySelector('#s4dsn');
+
+/* --- 씬5 --- */
+const P5=[["자탐2","조리연기 / 실화재 판별","노드 추론"],["가스계","중량손실 6.2% / 기준 10%","로드셀"],
+          ["소화기","이탈 감지 — 경보","MPU6500"],["유도등","비상전원 20분 잔여 예측","CDS·전압"]];
+let m5='';P5.forEach((p,i)=>{const x=70+(i%2)*610,y=90+Math.floor(i/2)*290;
+ m5+=`<g class="pnl" opacity=".18"><rect x="${x}" y="${y}" width="540" height="250" fill="#101A2E" stroke="${LN}" stroke-width="2"/>
+ <text x="${x+28}" y="${y+58}" fill="${TX}" font-size="30" font-weight="700">${p[0]}</text>
+ <text x="${x+28}" y="${y+108}" fill="${G}" font-size="20">${p[1]}</text>
+ <text x="${x+28}" y="${y+146}" fill="${MU}" font-size="16">${p[2]}</text>
+ <rect class="bar" x="${x+28}" y="${y+180}" width="0" height="12" fill="${G}"/></g>`;});
+const s5=mkScene(`<rect width="1280" height="720" fill="#070C16"/>${m5}`);
+const s5p=[...s5.querySelectorAll('.pnl')],s5b=[...s5.querySelectorAll('.bar')];
+
+/* --- 씬6 --- */
+const s6=mkScene(`<rect width="1280" height="720" fill="#070C16"/>
+ <text x="70" y="80" fill="${G}" font-size="16" letter-spacing="4" font-family="monospace">TIMELAPSE MODE</text>
+ <rect x="70" y="110" width="1000" height="420" fill="#0B1220" stroke="${LN}"/>
+ <line x1="70" y1="470" x2="1070" y2="470" stroke="${AL}" stroke-dasharray="7 7"/>
+ <text x="1080" y="476" fill="${AL}" font-size="16">기준선</text>
+ <g id="s6pts"></g>
+ <polyline id="s6reg" fill="none" stroke="${G}" stroke-width="3" stroke-dasharray="6 6" points=""/>
+ <circle id="s6hit" cx="0" cy="0" r="11" fill="${AL}" opacity="0"/>
+ <g id="s6d" opacity="0">
+   <text x="640" y="622" fill="${AL}" font-size="72" font-weight="800" text-anchor="middle" font-family="monospace">D-47</text>
+   <text x="640" y="662" fill="${MU}" font-size="18" text-anchor="middle">기준선 도달 예상 — 고장 이전 알림 발송</text></g>`);
+const s6pts=s6.querySelector('#s6pts'),s6reg=s6.querySelector('#s6reg'),
+      s6hit=s6.querySelector('#s6hit'),s6d=s6.querySelector('#s6d');
+
+/* --- 씬7 --- */
+mkScene(`<rect width="1280" height="720" fill="#070C16"/>
+ <text x="640" y="330" fill="${TX}" font-size="82" font-weight="800" text-anchor="middle" letter-spacing="10">불침번</text>
+ <line x1="480" y1="372" x2="800" y2="372" stroke="${G}" stroke-width="3"/>
+ <text x="640" y="424" fill="${G}" font-size="22" text-anchor="middle">소방시설관리사가 볼 수 없는 361일을, 불침번이 지킵니다</text>
+ <text x="640" y="500" fill="${MU}" font-size="18" text-anchor="middle" font-family="monospace">2026ESWContest_free_불침번</text>`);
+
+/* ============ 사운드 (Web Audio 절차적 합성) ============ */
+const Snd=(()=>{
+  let ctx=null,master=null,drone=null,droneGain=null,on=false;
+  function init(){
+    if(ctx) return;
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC) return;
+    ctx=new AC();
+    master=ctx.createGain(); master.gain.value=0.9; master.connect(ctx.destination);
+    droneGain=ctx.createGain(); droneGain.gain.value=0;
+    const f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=220;
+    drone=ctx.createOscillator(); drone.type='sine'; drone.frequency.value=55;
+    const d2=ctx.createOscillator(); d2.type='sine'; d2.frequency.value=55.4;
+    drone.connect(f); d2.connect(f); f.connect(droneGain); droneGain.connect(master);
+    drone.start(); d2.start();
+  }
+  function noise(dur){
+    const n=Math.floor(ctx.sampleRate*dur), buf=ctx.createBuffer(1,n,ctx.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
+    const src=ctx.createBufferSource(); src.buffer=buf; return src;
+  }
+  function env(g,t0,a,dur,peak){
+    g.gain.setValueAtTime(0.0001,t0);
+    g.gain.exponentialRampToValueAtTime(peak,t0+a);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  }
+  function tone(freq,dur,type,peak,detune){
+    const t=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();
+    o.type=type||'sine'; o.frequency.value=freq; if(detune)o.detune.value=detune;
+    o.connect(g); g.connect(master); env(g,t,0.012,dur,peak||0.15);
+    o.start(t); o.stop(t+dur+0.05);
+  }
+  function sweep(f0,f1,dur,type,peak){
+    const t=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();
+    o.type=type||'sine'; o.frequency.setValueAtTime(f0,t);
+    o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+    o.connect(g); g.connect(master); env(g,t,0.01,dur,peak||0.14);
+    o.start(t); o.stop(t+dur+0.05);
+  }
+  function nz(dur,type,f0,f1,peak,q){
+    const t=ctx.currentTime,s=noise(dur),bp=ctx.createBiquadFilter(),g=ctx.createGain();
+    bp.type=type||'bandpass'; bp.frequency.setValueAtTime(f0,t);
+    bp.frequency.linearRampToValueAtTime(f1,t+dur); bp.Q.value=q||1;
+    s.connect(bp); bp.connect(g); g.connect(master); env(g,t,0.02,dur,peak||0.12);
+    s.start(t); s.stop(t+dur);
+  }
+  function chord(freqs,dur,peak){ freqs.forEach((f,i)=>setTimeout(()=>on&&tone(f,dur,'triangle',peak||0.1),i*60)); }
+
+  const FX={
+    tick(){ nz(0.05,'highpass',2600,2200,0.10,1); },
+    snore(){ nz(0.55,'lowpass',300,140,0.14,0.7); setTimeout(()=>on&&nz(0.35,'lowpass',180,320,0.09,0.7),620); },
+    startle(){ sweep(300,900,0.14,'square',0.10); },
+    thud(){ tone(78,0.32,'sine',0.26); nz(0.12,'lowpass',420,180,0.10,0.6); },
+    powerup(){ sweep(330,880,0.30,'triangle',0.13); setTimeout(()=>on&&tone(1320,0.28,'sine',0.09),200); },
+    sting(){ tone(146,0.55,'sawtooth',0.10); tone(220,0.5,'sine',0.06); },
+    reveal(){ chord([220,277,330,440],1.5,0.075); },
+    pop(){ sweep(520,780,0.10,'triangle',0.10); },
+    blip(){ tone(1180,0.07,'square',0.055); },
+    clunk(){ tone(96,0.26,'sine',0.28); nz(0.09,'bandpass',700,400,0.11,1.4); },
+    pump(){ const t=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain(),f=ctx.createBiquadFilter();
+      o.type='sawtooth'; o.frequency.value=118; f.type='lowpass'; f.frequency.value=380;
+      o.connect(f); f.connect(g); g.connect(master);
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.075,t+0.6);
+      g.gain.setValueAtTime(0.075,t+22); g.gain.exponentialRampToValueAtTime(0.0001,t+25);
+      o.start(t); o.stop(t+25.2); },
+    water(){ nz(3.2,'bandpass',900,2200,0.075,0.8); },
+    pass(){ [523,659,784].forEach((f,i)=>setTimeout(()=>on&&tone(f,0.7,'triangle',0.11),i*130)); },
+    snap(){ nz(0.07,'highpass',3200,2600,0.13,1.2); tone(1560,0.09,'square',0.05); },
+    whoosh(){ nz(1.0,'bandpass',260,3200,0.10,0.7); },
+    puff(){ nz(0.5,'bandpass',1600,600,0.08,0.6); },
+    drop(){ sweep(620,180,0.4,'sine',0.11); },
+    buzzer(){ for(let i=0;i<5;i++) setTimeout(()=>on&&tone(880,0.09,'square',0.10),i*160); },
+    click(){ nz(0.04,'highpass',3000,2400,0.10,1); },
+    impact(){ tone(64,0.7,'sine',0.30); nz(0.25,'lowpass',900,200,0.11,0.6); },
+    notify(){ [988,1319].forEach((f,i)=>setTimeout(()=>on&&tone(f,0.5,'sine',0.10),i*140)); },
+    outro(){ chord([196,247,294,392],2.4,0.09); }
+  };
+
+  return {
+    enable(){ init(); if(!ctx) return false; ctx.resume(); on=true; return true; },
+    disable(){ on=false; if(droneGain) droneGain.gain.setTargetAtTime(0,ctx.currentTime,0.15); },
+    isOn(){ return on; },
+    play(name){ if(!on||!ctx||!FX[name]) return; try{FX[name]();}catch(e){} },
+    pulse(f){ if(!on||!ctx) return; try{ tone(f,1.8,'triangle',0.045); tone(f*2,1.2,'sine',0.018); }catch(e){} },
+    setDrone(v){ if(!on||!ctx) return; droneGain.gain.setTargetAtTime(v,ctx.currentTime,0.4); }
+  };
+})();
+
+/* --- 사운드 큐 (시각 t, 효과) --- */
+const CUES=[];
+for(let t=0.6;t<4.6;t+=1.0) CUES.push([+t.toFixed(2),'tick']);      // 프롤로그 초침
+CUES.push([2.15,'startle'],[3.10,'snore'],[4.30,'startle'],[4.75,'thud'],
+          [5.40,'snore'],[6.90,'snore'],[8.20,'powerup']);
+for(let t=10.4;t<20.5;t+=1.0) CUES.push([+t.toFixed(2),'tick']);     // #1 초침 이어받기
+CUES.push([20.9,'sting']);
+CUES.push([24.2,'reveal'],[25.4,'pop'],[26.9,'pop'],[28.4,'pop'],[29.9,'pop'],[31.4,'pop']);
+CUES.push([39.6,'blip'],[41.2,'blip'],[42.8,'blip'],[44.4,'blip'],[46.0,'blip'],[47.6,'blip']);
+CUES.push([55.8,'clunk'],[57.4,'pump'],[64.8,'blip'],
+          [75.8,'clunk'],[77.0,'water'],[85.2,'pass'],
+          [95.8,'snap'],[97.6,'snap'],[104.8,'whoosh'],[112.0,'blip'],[117.0,'blip']);
+CUES.push([124.8,'puff'],[128.2,'buzzer'],[133.4,'drop'],[140.4,'buzzer'],[148.4,'click'],[150.2,'blip']);
+CUES.push([156.6,'whoosh'],[166.6,'impact'],[168.4,'notify']);
+CUES.push([175.4,'outro']);
+CUES.sort((a,b)=>a[0]-b[0]);
+
+/* 음악 베드 : 2초 간격 펄스 (섹션별 음정) */
+const SCALE={2:[110,131,165],3:[110,147,165],4:[98,123,147],5:[110,139,165],6:[123,147,185]};
+for(let t=24;t<175;t+=2){
+  const ci=CUTS.findIndex(c=>t>=c.t0&&t<c.t1);
+  const sc=SCALE[ci]; if(!sc) continue;
+  CUES.push([+t.toFixed(2),'pulse:'+sc[Math.floor((t/2)%sc.length)]]);
+}
+CUES.sort((a,b)=>a[0]-b[0]);
+
+const DRONE=[0.05,0.075,0.045,0.045,0.06,0.045,0.055,0.03];
+
+/* ============ 씬 애니메이션 ============ */
+const ease=p=>1-Math.pow(1-p,3);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+function drawScene(i,p,t){
+  if(i===0){
+    p0.clock.textContent = (Math.floor(t)%2===0)?'02:00':'02 00';
+    if(p<0.45){
+      const c=(p/0.45)*2, f=c%1;
+      const a = f<0.8 ? (f/0.8)*40 : 40*(1-(f-0.8)/0.2);
+      p0.head.setAttribute('transform','rotate('+a.toFixed(1)+',0,44)');
+      p0.arm.setAttribute('transform','rotate('+(a*0.45).toFixed(1)+',0,90)');
+      const sleepy=f>0.35&&f<0.85;
+      p0.eyeL.setAttribute('d', sleepy?'M -24 8 q 11 4 22 0':'M -24 6 q 11 -9 22 0');
+      p0.eyeR.setAttribute('d', sleepy?'M 2 8 q 11 4 22 0':'M 2 6 q 11 -9 22 0');
+      p0.mouth.setAttribute('ry', sleepy?'9':'6');
+      p0.zzz.setAttribute('opacity', sleepy?'0.9':'0');
+      p0.sol.setAttribute('opacity','1'); p0.node.setAttribute('opacity','0');
+    } else if(p<0.78){
+      p0.head.setAttribute('transform','rotate(52,0,44)');
+      p0.arm.setAttribute('transform','rotate(26,0,90)');
+      p0.eyeL.setAttribute('d','M -24 8 q 11 4 22 0');
+      p0.eyeR.setAttribute('d','M 2 8 q 11 4 22 0');
+      p0.mouth.setAttribute('ry','10');
+      p0.zzz.setAttribute('opacity', (0.6+0.4*Math.sin(t*3)).toFixed(2));
+      p0.sol.setAttribute('opacity','1'); p0.node.setAttribute('opacity','0');
+    } else {
+      const k=clamp((p-0.78)/0.14,0,1);
+      p0.sol.setAttribute('opacity',(1-k).toFixed(2));
+      p0.zzz.setAttribute('opacity',(1-k).toFixed(2));
+      p0.node.setAttribute('opacity',k.toFixed(2));
+      p0.led.setAttribute('opacity',(0.35+0.65*Math.abs(Math.sin(t*5))).toFixed(2));
+    }
+  }
+  if(i===1){
+    const k=clamp(p/0.62,0,1);
+    s1num.textContent=Math.round(ease(k)*361);
+    const lit=Math.floor(ease(k)*s1cells.length);
+    s1cells.forEach((c,j)=>c.setAttribute('fill', j<lit?'#1E2C48':'#131E33'));
+    s1red.setAttribute('opacity', p>0.72? clamp((p-0.72)/0.06,0,1):0);
+  }
+  if(i===2){
+    s2mods.forEach((m,j)=>m.setAttribute('opacity', p>(0.08+j*0.11)?'1':'0'));
+    s2t.setAttribute('opacity', p>0.68? clamp((p-0.68)/0.08,0,1):0);
+  }
+  if(i===3){
+    const q=(t*0.55)%1;
+    s3p1.setAttribute('cx',292+q*144);
+    s3p2.setAttribute('opacity',p>0.35?'1':'0'); s3p2.setAttribute('cx',672+q*144);
+    const g=0.35+0.65*Math.abs(Math.sin(t*2.4));
+    s3pulse.setAttribute('opacity', p>0.2?g.toFixed(2):'0');
+    s3node.setAttribute('stroke-width', p>0.2?(2+g*3).toFixed(1):'2');
+  }
+  if(i===4){
+    let ang=0,pct=0,vst='대기';
+    if(p<0.286){ const k=clamp(p/0.286,0,1);
+      ang=k<0.35?(k/0.35)*90:90; vst=k<0.35?'폐쇄 중':'완전 폐쇄 (체절)';
+      pct=k<0.35?0:ease((k-0.35)/0.65)*128;
+    } else if(p<0.571){ const k=clamp((p-0.286)/0.285,0,1);
+      ang=k<0.3?90-(k/0.3)*90:0; vst=k<0.3?'개방 중':'개방 (부하)';
+      pct=k<0.3?128-(k/0.3)*20:108-ease((k-0.3)/0.7)*37;
+    } else { ang=0; vst='시험 종료'; pct=71; }
+    s4valve.setAttribute('transform','rotate('+ang.toFixed(1)+')');
+    s4vst.textContent=vst; s4pct.textContent=Math.round(pct)+'%';
+    s4pct.setAttribute('fill', pct>140?AL:(pct>0?TX:MU));
+    s4ndl.setAttribute('transform','rotate('+(-120+clamp(pct,0,160)/160*240).toFixed(1)+')');
+    const n=Math.floor(clamp(p/0.571,0,1)*180); let pp='';
+    for(let j=0;j<=n;j++){ const u=j/180; let v;
+      if(u<0.16)v=0; else if(u<0.5)v=128*ease((u-0.16)/0.34);
+      else if(u<0.62)v=128-(u-0.5)/0.12*20; else v=108-37*ease(clamp((u-0.62)/0.38,0,1));
+      pp+=(j*620/180).toFixed(1)+','+(220-v/160*175).toFixed(1)+' '; }
+    s4pline.setAttribute('points',pp);
+    let cp=''; const lim=clamp(p/0.571,0,1)*620;
+    for(let x=0;x<=620;x+=4){ const u=x/620; let amp=u<0.5?30:52;
+      if(lim<x) amp=0;
+      cp+=x+','+(120+amp*Math.sin(x*0.19+t*4)).toFixed(1)+' '; }
+    s4cline.setAttribute('points',cp);
+    s4tag1.setAttribute('opacity',p>0.60?'1':'0');
+    s4tag2.setAttribute('opacity',p>0.63?'1':'0');
+    s4pass.setAttribute('opacity',(p>0.44&&p<0.56)?'1':'0');
+    const dsOn=p>0.72; s4ds.setAttribute('opacity',dsOn?'1':'0');
+    if(dsOn) s4dsn.textContent=Math.round(ease(clamp((p-0.72)/0.28,0,1))*1240);
+  }
+  if(i===5){
+    const seg=[0,0.290,0.516,0.774,1];
+    s5p.forEach((el,j)=>{
+      const on=p>=seg[j]&&p<seg[j+1];
+      el.setAttribute('opacity', on?'1':(p>=seg[j+1]?'.42':'.18'));
+      const k=on?clamp((p-seg[j])/(seg[j+1]-seg[j]),0,1):(p>=seg[j+1]?1:0);
+      s5b[j].setAttribute('width',(ease(k)*480).toFixed(0));
+    });
+  }
+  if(i===6){
+    const k=clamp(p/0.72,0,1); let html=''; const N=Math.floor(ease(k)*26);
+    for(let j=0;j<N;j++){ const x=90+j*26,y=180+j*10.5+(j%3-1)*9;
+      html+=`<circle cx="${x}" cy="${y}" r="4" fill="#6FA8FF" opacity=".8"/>`; }
+    s6pts.innerHTML=html;
+    const ex=90+ease(k)*(1060-90), ey=180+(ex-90)*0.404;
+    s6reg.setAttribute('points','90,180 '+ex.toFixed(0)+','+Math.min(ey,470).toFixed(0));
+    if(p>0.72){ s6hit.setAttribute('opacity','1'); s6hit.setAttribute('cx','808'); s6hit.setAttribute('cy','470');
+      s6d.setAttribute('opacity',clamp((p-0.75)/0.08,0,1)); }
+    else { s6hit.setAttribute('opacity','0'); s6d.setAttribute('opacity','0'); }
+  }
+}
+
+/* ============ 재생 엔진 ============ */
+let time=0,playing=false,speed=1,last=0,curCut=-1,lastT=0;
+const elTC=document.getElementById('tc'),elCur=document.getElementById('cur'),
+ elBadge=document.getElementById('badge'),elSub=document.getElementById('sub'),
+ ph=document.getElementById('ph'),playBtn=document.getElementById('play'),
+ sndBtn=document.getElementById('snd'),aflag=document.getElementById('aflag');
+const sN=document.getElementById('sN'),sT=document.getElementById('sT'),sD=document.getElementById('sD'),
+ sScreen=document.getElementById('sScreen'),sNar=document.getElementById('sNar'),
+ sFit=document.getElementById('sFit'),sSnd=document.getElementById('sSnd'),sTip=document.getElementById('sTip');
+
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+const fmtTC=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0')+':'+String(Math.floor((s%1)*24)).padStart(2,'0');
+function cutIndex(t){ for(let i=CUTS.length-1;i>=0;i--) if(t>=CUTS[i].t0) return i; return 0; }
+
+function setSide(i){
+  const c=CUTS[i];
+  sN.textContent=c.n; sT.textContent=c.title; sD.textContent=c.dur+'초';
+  sScreen.textContent=c.screen; sSnd.textContent=c.snd; sTip.textContent=c.tip;
+  sNar.textContent=c.nar||'— 내레이션 없음 (효과음·자막으로 진행) —';
+  if(!c.nar){ sFit.innerHTML=''; return; }
+  const cls=c.ratio>1?'over':(c.ratio>0.8?'tight':'');
+  const msg=c.ratio>1?'컷 길이 초과 — 문장 축약 필요':(c.ratio>0.8?'여유 적음 — 빠듯함':'여유 있음');
+  sFit.innerHTML='<span>'+c.syl+'음절 ≈ '+c.narSec+'초 / '+c.dur+'초</span><b class="'+cls+'">'+msg+'</b>';
+}
+function fireCues(a,b){
+  if(b<a) return;
+  for(const [t,fx] of CUES){
+    if(t>a&&t<=b){
+      if(fx.indexOf('pulse:')===0) Snd.pulse(+fx.split(':')[1]);
+      else Snd.play(fx);
+    }
+  }
+}
+function render(){
+  const i=cutIndex(time),c=CUTS[i];
+  if(i!==curCut){
+    curCut=i;
+    scenes.forEach((s,j)=>s.classList.toggle('on',j===i));
+    stripEls.forEach((e,j)=>e.setAttribute('data-active',j===i?'true':'false'));
+    elBadge.textContent=c.n; setSide(i);
+    Snd.setDrone(DRONE[i]);
+  }
+  drawScene(i,(time-c.t0)/c.dur,time);
+  elTC.textContent=fmtTC(time); elCur.textContent=fmt(time);
+  ph.style.left=(time/TOTAL*100)+'%';
+  const s=SUBS.find(x=>time>=x[0]&&time<x[1]);
+  elSub.innerHTML=s?'<span>'+s[2]+'</span>':'';
+}
+function loop(ts){
+  if(playing){
+    if(!last) last=ts;
+    const prev=time;
+    time+=(ts-last)/1000*speed; last=ts;
+    if(time>=TOTAL){ time=TOTAL-0.01; setPlay(false); }
+    if(Snd.isOn()) fireCues(prev,time);
+  } else last=0;
+  render();
+  requestAnimationFrame(loop);
+}
+function setPlay(v){ playing=v; last=0; playBtn.textContent=v?'❚❚':'▶';
+  playBtn.setAttribute('aria-label',v?'정지':'재생'); }
+function seek(t){ time=clamp(t,0,TOTAL-0.01); curCut=-1; render(); }
+
+playBtn.onclick=()=>setPlay(!playing);
+sndBtn.onclick=()=>{
+  if(Snd.isOn()){ Snd.disable(); sndBtn.setAttribute('aria-pressed','false');
+    sndBtn.textContent='🔇 소리 켜기'; aflag.hidden=false; }
+  else{ if(Snd.enable()){ sndBtn.setAttribute('aria-pressed','true');
+    sndBtn.textContent='🔊 소리 켜짐'; aflag.hidden=true; Snd.setDrone(DRONE[curCut]||0.05); } }
+};
+document.querySelectorAll('.speed button').forEach(b=>{
+  b.onclick=()=>{ speed=parseFloat(b.dataset.s);
+    document.querySelectorAll('.speed button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false')); };
+});
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'){e.preventDefault();setPlay(!playing);}
+  if(e.code==='ArrowRight'){e.preventDefault();seek(time+5);}
+  if(e.code==='ArrowLeft'){e.preventDefault();seek(time-5);}
+});
+
+seek(0);
+requestAnimationFrame(loop);
+if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches) setPlay(true);
+</script>
+</body>
+</html>
