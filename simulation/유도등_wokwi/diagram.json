@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "author": "Anonymous maker",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-c3-devkitm-1",
+      "id": "esp",
+      "top": -19.5,
+      "left": -166.98,
+      "attrs": {}
+    },
+    { "type": "wokwi-potentiometer", "id": "pot1", "top": -145.3, "left": -221, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "pot2", "top": -145.3, "left": -86.6, "attrs": {} },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn1",
+      "top": 54.2,
+      "left": -19.2,
+      "attrs": { "color": "green", "xray": "1" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "pot1:GND", "esp:GND.1", "black", [ "v0" ] ],
+    [ "pot1:VCC", "esp:3V3.1", "red", [ "v0" ] ],
+    [ "pot1:SIG", "esp:4", "green", [ "v0" ] ],
+    [ "pot2:GND", "esp:GND.10", "black", [ "v0" ] ],
+    [ "pot2:VCC", "esp:3V3.2", "red", [ "v0" ] ],
+    [ "pot2:SIG", "esp:3", "green", [ "v0" ] ],
+    [ "btn1:1.l", "esp:0", "green", [ "h0" ] ],
+    [ "btn1:2.l", "esp:GND.7", "green", [ "h0" ] ]
+  ],
+  "dependencies": {}
+}
