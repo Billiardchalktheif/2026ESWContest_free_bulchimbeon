@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "author": "Anonymous maker",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-c3-devkitm-1", "id": "esp", "top": -9.9, "left": -147.78, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "pot1", "top": -116.5, "left": -240.2, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "pot2", "top": -116.5, "left": -96.2, "attrs": {} },
+    { "type": "wokwi-dht22", "id": "dht1", "top": -124.5, "left": 52.2, "attrs": {} }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "pot1:GND", "esp:GND.1", "black", [ "v0" ] ],
+    [ "pot1:VCC", "esp:3V3.1", "red", [ "v0" ] ],
+    [ "pot1:SIG", "esp:4", "green", [ "v0" ] ],
+    [ "pot2:GND", "esp:GND.10", "black", [ "v0" ] ],
+    [ "pot2:VCC", "esp:3V3.2", "red", [ "v0" ] ],
+    [ "pot2:SIG", "esp:3", "green", [ "v0" ] ],
+    [ "dht1:VCC", "esp:3V3.1", "red", [ "v0" ] ],
+    [ "dht1:GND", "esp:GND.8", "black", [ "v0" ] ],
+    [ "dht1:SDA", "esp:0", "green", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}
