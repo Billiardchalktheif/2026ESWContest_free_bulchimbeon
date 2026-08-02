@@ -141,7 +141,7 @@
     - libraries.txt
     - wokwi-project.txt
    
-   - 자탐2(광전식)_wokwi/
+  - 자탐2(광전식)_wokwi/
     - sketch.ino
     - diagram.json
     - libraries.txt
