@@ -152,6 +152,13 @@
   - gas_node.ino
   - pump_node_INA219.ino
   - *(라즈베리파이 서버 파이썬 코드 추가 예정)*
+ 
+- `app/`
+  - docs/
+    - 네이티브앱_쉬운설명.md
+    - 네이티브앱_개발가이드.md
+    - 처음부터_시작하기_Windows.md
+    - 네이티브앱_고급기능_가이드.md
 
 - `simulation/`
   - 가스계_wokwi/
