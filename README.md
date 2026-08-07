@@ -15,6 +15,7 @@
 - `불침번_팀원용_이해자료_최종.md` — 프로젝트 취지·로직을 쉽게 풀어쓴 내부 참고자료
 - `앱_통합_가이드.md` — (폐기) 텔레그램 알림봇 + PWA 연동 초기안 — 네이티브 앱으로 방향 전환됨
 - `라즈베리파이_소프트웨어_검증_가이드.md` - 라즈베리파이를 통한 중앙제어 시스템을 시뮬레이션하는 가이드
+- `라즈베리파이_초기세팅_가이드.md` - 라즈베리파이를 다루기 위한 초기 세팅 가이드라인
 - `bulchimbeon_animatic.html` — 애니매틱으로 만든 시연영상 초기 구성안
 
 **시연영상 초기 구성안**: [바로 재생하기](https://billiardchalktheif.github.io/2026ESWContest_free_bulchimbeon/docs/bulchimbeon_animatic.html)
