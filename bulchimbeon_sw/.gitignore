@@ -1,0 +1,16 @@
+# 파이썬 캐시
+__pycache__/
+*.pyc
+
+# 실행 결과물 — 코드가 아니라 런타임 산출물이라 커밋 대상에서 제외.
+# 클론 후 server/storage/db.py -> ml/train_*.py -> ml/evaluate_predictions.py 순으로
+# 실행하면 동일한 상태를 로컬에서 그대로 재현할 수 있다.
+server/storage/*.db
+server/judge/ai_models/*.joblib
+ml/*.joblib
+ml/prediction_accuracy.json
+ml/prediction_accuracy.csv
+
+# 수동 트리거 신호 파일 (server<->dashboard 프로세스 간 임시 통신 용도)
+server/storage/_pump_manual_valve_trigger.json
+server/storage/_test_fire_alarm.db
