@@ -6,6 +6,7 @@ __pycache__/
 # 클론 후 server/storage/db.py -> ml/train_*.py -> ml/evaluate_predictions.py 순으로
 # 실행하면 동일한 상태를 로컬에서 그대로 재현할 수 있다.
 server/storage/*.db
+server/storage/*.db-journal
 server/judge/ai_models/*.joblib
 ml/*.joblib
 ml/prediction_accuracy.json

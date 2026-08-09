@@ -42,6 +42,16 @@ from pump_performance_test import determine_valve_state, evaluate_pump_performan
 
 HEARTBEAT_TIMEOUT_SEC = 90
 
+# ESP32 쪽 NTP 동기화가 아직 안 됐을 때(부팅 직후, 또는 NTP 서버 접속 실패 지속)
+# getEpochSeconds()가 millis()/1000.0(부팅 후 경과초, 예: 12.5)을 그대로 보낸다 —
+# 각 .ino 파일도 이 값을 판단 기준(NTP_SYNCED_THRESHOLD)으로 쓰고 있어 서버도 동일한
+# 값을 쓴다. ESP32의 NTP 재시도 로직을 붙잡고 씨름하는 대신, 서버가 이 값을 그대로
+# 믿지 않고 "패킷을 받은 이 순간의 서버 시각"으로 갈아치운다 — 라즈베리파이는 상시
+# 네트워크에 연결돼 있어 시각을 이미 신뢰할 수 있는 쪽이기 때문. z-score/선형회귀는
+# 전부 ts 기반 시계열이라, 1970년대 근처 값이 하나라도 섞이면 baseline/기울기 계산이
+# 통째로 깨진다 — 이 보정이 없으면 그 오류를 데이터 쪽에서 걸러낼 방법이 없다.
+NTP_SYNCED_THRESHOLD_TS = 1700000000
+
 
 def upsert_heartbeat(conn, node_id, device_type, seq, ts, boot_id=None):
     """
@@ -85,6 +95,10 @@ def handle_packet(conn, pkt: dict):
     device = pkt.get("device_type")
     node_id = pkt.get("node_id", "unknown")
     ts = pkt.get("ts", time.time())
+    if ts < NTP_SYNCED_THRESHOLD_TS:
+        # NTP 미동기화 상태로 보낸 패킷 — ts를 그대로 저장하면 안 되므로 서버 수신
+        # 시각으로 대체한다(파일 상단 NTP_SYNCED_THRESHOLD_TS 설명 참고).
+        ts = time.time()
     seq = pkt.get("seq", -1)
     boot_id = pkt.get("boot_id")
 
