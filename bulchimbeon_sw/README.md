@@ -17,7 +17,7 @@ v7에서 `server/`를 receiver(수신) / storage(DB) / judge(판정) / dispatch(
 bulchimbeon_sw/
 ├── server/
 │   ├── main.py                     # 서버 실행 진입점 — python server/main.py
-│   ├── config.py                   # 경로 상수 + 가스/z-score 등 판정 임계값(cross-module)
+│   ├── config.py                   # 경로 상수 + 가스/자탐 루프저항 등 판정 임계값(cross-module)
 │   ├── feature_extraction.py       # 파형 -> RMS/peak/duty_cycle 계산
 │   ├── pump_performance_test.py    # 수계 — 성능시험(1차, 규칙기반) + 압력기반 밸브상태 추정
 │   ├── receiver/
@@ -28,14 +28,14 @@ bulchimbeon_sw/
 │   │   └── schema.sql              # 5개 설비 + heartbeat 테이블
 │   ├── judge/
 │   │   ├── rules.py                # 소화기 — 이탈감지 2단계 판정 (규칙 기반)
-│   │   ├── regression.py           # 자탐 z-score + 가스계/유도등 선형회귀 (통계)
+│   │   ├── regression.py           # 자탐 루프저항 2층 판정 + 가스계/유도등 선형회귀 (통계)
 │   │   ├── classify.py             # 수계 파형분류 + 자탐2 비화재보 판별 AI 실시간 추론
 │   │   └── ai_models/              # train_*.py가 저장하는 .joblib 위치
 │   └── dispatch/
 │       └── lcd_buzzer_output.py    # 출력채널 공통 진입점 — 부저 + I2C LCD
 ├── simulate/
 │   ├── dummy_generator.py           # 실물 없이 5개 설비 신호 시뮬레이션
-│   └── verify_fire_alarm_zscore.py  # 자탐 z-score 판정 검증 스크립트
+│   └── verify_loop_resistance_judgment.py  # 자탐 루프저항 2층 판정 검증 스크립트
 ├── ml/
 │   ├── train_pump_classifier.py      # 수계 주펌프 5클래스 분류 모델 학습 (AI 지점 ①)
 │   ├── train_nuisance_classifier.py  # 자탐2 비화재보 판별 모델 학습 (AI 지점 ②)
@@ -76,8 +76,8 @@ python ml/train_nuisance_classifier.py
 # 5) 대시보드 실행 (터미널 C) -> http://localhost:5000
 python dashboard/app.py
 
-# 6) 자탐 z-score 판정 검증
-python simulate/verify_fire_alarm_zscore.py
+# 6) 자탐 루프저항 2층 판정 검증
+python simulate/verify_loop_resistance_judgment.py
 
 # 7) 가스계/유도등 회귀 예측 정확도 검증 (개발완료보고서 근거자료)
 python ml/evaluate_predictions.py
@@ -89,7 +89,16 @@ python ml/evaluate_predictions.py
 - [x] 5개 설비 전부 더미 데이터로 end-to-end 검증 완료 (재편된 폴더 구조 기준으로 재검증 완료)
 - [x] 자탐 — **2구역이 센서 구성부터 완전히 분리됨(v4)**: 자탐1(차동식, TS0202 온도
       dT/dt, 규칙 기반)과 자탐2(광전식, MQ-2+DHT22, **비화재보 판별 AI**)가 서로 다른
-      ESP32 펌웨어. 루프저항 z-score(지속성 조건, window=8)는 두 구역 공통
+      ESP32 펌웨어. 루프저항 판정은 두 구역 공통이며, **z-score를 폐기하고 2층 구조로
+      전면 교체**했다 — baseline 자체가 서서히 상승하는 저항값을 따라가버려 진짜
+      "가속 열화"를 정상으로 오판하는 문제가 실측 검증 중 발견됐기 때문. 급성 단선/
+      합선은 화재수신기 도통시험이 이미 실시간 감시 중이므로, 상위 SW는 법정기준
+      (50Ω) 초과 여부(1층, `check_absolute_threshold`)와 서서히 진행되는 열화 추세
+      (2층, Ω/day 선형회귀, `check_resistance_trend`)를 보는 구조로 재정립
+      (`server/judge/regression.py`의 `evaluate_loop_resistance`). raw 센서값은
+      R_loop 고정저항(안전 전류 확보용) + 가변저항(열화 시뮬레이션)의 합이라 법정기준과
+      스케일이 다른데, 이것도 가스계의 공병중량 차감과 동일한 패턴으로 판정 시점에만
+      `LOOP_FIXED_OFFSET_OHM`(임시값 253Ω, 실측 후 재조정 필요)을 차감해서 보정한다
 - [x] 자탐2 비화재보 판별 — temp_rise_rate/mq2_raw/humidity_pct 3개 feature로
       fire/cooking/normal 분류(RandomForest). "온도상승률 vs 습도상승" 조합이 핵심
       구분점 — 더미데이터로는 완전분리 확인, **실측 검증은 부품 수령 후 최우선 과제**
@@ -186,12 +195,25 @@ python ml/evaluate_predictions.py
 - **자탐 2구역은 센서 구성이 완전히 다르다(v4).** 자탐1(차동식)은 TS0202 온도센서 +
   루프저항만 감시하고, 자탐2(광전식)만 MQ-2+DHT22로 비화재보 판별 AI를 돌린다.
   둘 다 열원/발연원은 ESP32에 연결되지 않은 완전 수동 조작(열풍기/가습기)이다.
-- 자탐 감지기회로 전로저항은 **50Ω 이하가 법정 정상 기준**이며, `dummy_generator.py`의
-  베이스라인은 20Ω 근처로 맞춰뒀다.
-- 자탐 z-score의 alarm/caution 임계값(1.8/1.6)이 통상적인 3.0/2.0보다 낮은 이유는
-  매직넘버가 아니라 수학적으로 유도된 값이다 — 이동평균 기반 z-score는 순수 선형
-  드리프트에 대해 기울기가 아무리 커도 window 크기로 정해지는 점근값 이상 못 올라간다.
-  자세한 유도 과정은 `server/judge/regression.py` docstring 참고.
+- 자탐 감지기회로 전로저항은 **50Ω 이하가 법정 정상 기준**(`LOOP_RESISTANCE_HARD_LIMIT_OHM`)
+  이며, 이건 raw 센서값이 아니라 **보정저항(raw - `LOOP_FIXED_OFFSET_OHM`)**에 적용된다.
+  raw 값은 R_loop 고정저항(안전 전류 확보용) + 가변저항(열화 시뮬레이션)의 합이라
+  253~1413Ω 범위로 나와 법정기준과 스케일이 다르기 때문 — `dummy_generator.py`의
+  `FIRE_ALARM_BASELINE_OHM`도 이 오프셋(253Ω, 실측 후 재조정 필요)을 포함한 raw
+  스케일로 맞춰뒀다.
+- **자탐 루프저항은 z-score를 폐기하고 2층 구조로 교체됐다** — 1층(`check_absolute_threshold`)은
+  보정저항이 법정기준을 초과하면 표본 수와 무관하게 즉시 alarm, 2층(`check_resistance_trend`)은
+  전체 이력에 선형회귀를 적용해 Ω/day 기울기가 `LOOP_TREND_CAUTION_SLOPE`(0.5)/
+  `LOOP_TREND_ALARM_SLOPE`(2.0, 둘 다 임시값)를 넘는지로 판정한다. 두 층은 독립적으로
+  평가되고 더 심각한 쪽이 최종 status가 된다 — 급성 이상(1층)과 서서히 진행되는
+  열화(2층)는 원인이 달라 어느 한쪽이 다른 쪽을 대신할 수 없기 때문. 표본이
+  `LOOP_TREND_MIN_SAMPLES`(3) 미만이면 2층은 판정을 보류(normal)하지만, 이 경우에도
+  1층은 그대로 동작한다(`simulate/verify_loop_resistance_judgment.py`의 C시나리오가
+  이 독립성을 검증한다). 폐기 배경: 이동평균 기반 z-score는 baseline 자체가 서서히
+  오르는 저항값을 따라가버려서 진짜 "가속 열화"를 정상으로 오판하는 문제가 실측
+  검증 중 발견됐다 — 급성 단선/합선은 화재수신기 도통시험이 이미 실시간 감시하므로,
+  상위 SW는 절대기준(법정 초과 여부)과 열화 추세, 두 성격이 다른 이상을 분리해서 보는
+  쪽이 더 정확하다.
 - 유도등 조도센서 로직은 **2선식(평상시 상시점등)** 전제 — 3선식(평상시 소등이 정상)
   현장에 배포하면 오탐이 나므로 배포 전 반드시 확인할 것.
 - 유도등의 `predicted_days_to_replace`(느린 전압추세, 일 단위)와 `estimated_discharge_min`
@@ -209,7 +231,7 @@ python ml/evaluate_predictions.py
 - `dummy_generator.py`로 대량 전송 시 `send()`의 `time.sleep(0.01)`을 지우지 말 것
   (지우면 UDP 버퍼 오버플로우로 패킷 유실 — 실물 노드는 원래 느리게 보내므로 이 문제 없음)
 - **AI는 정확히 2곳에만 적용된다: 수계 주펌프 파형 분류 + 자탐2 비화재보 판별.**
-  그 외(자탐1/가스계/소화기/유도등)는 전부 통계(z-score/선형회귀)·규칙 기반이며,
+  그 외(자탐1/가스계/소화기/유도등)는 전부 통계(절대임계값/선형회귀)·규칙 기반이며,
   이 설계 원칙은 변경하지 않는다.
 - **가스계 손실률은 반드시 약제중량(총중량-공병중량) 기준으로 계산해야 한다(v7).**
   미니어처처럼 용기 자체 무게 비중이 크면 총중량 기준 계산은 손실률을 과소평가한다.

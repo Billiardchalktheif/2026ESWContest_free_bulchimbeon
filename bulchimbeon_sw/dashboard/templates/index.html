@@ -37,7 +37,7 @@
   <h1>불침번 — 상시 소방설비 점검 대시보드</h1>
   <div class="subtitle">5초마다 자동 새로고침 · node_id 배지가 online/offline 표시</div>
 
-  <div class="section-title">자탐 (루프 저항 z-score 공통 + 구역별 판정)</div>
+  <div class="section-title">자탐 (루프 저항 2층 판정: 절대임계값+추세, 공통 + 구역별 판정)</div>
   <div class="grid">
     {% for c in fire_alarm_cards %}
     <div class="card status-{{ c.status }}">
@@ -48,9 +48,9 @@
       <div class="row">node_id: <b>{{ c.node_id }}</b>
         {% if c.heartbeat %}<span class="hb {{ 'online' if c.heartbeat.online else 'offline' }}">{{ 'online' if c.heartbeat.online else 'offline' }}</span>{% endif %}
       </div>
-      <div class="row">루프 저항: <b>{{ "%.2f"|format(c.loop_resistance_ohm) }} Ω</b></div>
-      <div class="row">baseline: {{ "%.2f"|format(c.baseline_ohm) if c.baseline_ohm is not none else "계산중" }} Ω</div>
-      <div class="row">z-score: <b>{{ "%.2f"|format(c.z_score) if c.z_score is not none else "계산중" }}</b></div>
+      <div class="row">루프 저항(raw): <b>{{ "%.2f"|format(c.loop_resistance_ohm) }} Ω</b></div>
+      <div class="row">열화 추세: {{ "%.2f"|format(c.loop_trend_slope_ohm_per_day) if c.loop_trend_slope_ohm_per_day is not none else "표본부족" }} Ω/day</div>
+      <div class="row">잔여 고장시간 예측: {{ "%.1f일"|format(c.loop_rttf_days) if c.loop_rttf_days is not none else "N/A" }}</div>
       {% if c.zone_type == 'differential' %}
       <div class="row">온도 상승률(dT/dt): <b>{{ "%.3f°C/초"|format(c.temp_rise_rate) if c.temp_rise_rate is not none else "계산중" }}</b></div>
       {% elif c.zone_type == 'photoelectric' %}

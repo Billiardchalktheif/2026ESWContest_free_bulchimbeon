@@ -1,47 +1,53 @@
 """
-"추세 기반 통계 판정" 모듈 — 자탐 z-score + 가스계/유도등 선형회귀.
+"추세 기반 통계 판정" 모듈 — 자탐 루프저항 2층 판정 + 가스계/유도등 선형회귀.
 v7 폴더 재편으로 anomaly_detection.py와 regression_forecast.py를 이 파일 하나로
 합쳤다 — 둘 다 "AI가 아니라 통계로 서서히 진행되는 추세를 잡아낸다"는 성격이 같기
-때문. 함수명은 기존 그대로 유지했다(evaluate_fire_alarm/evaluate_gas/evaluate_evac_light/
-evaluate_evac_discharge_capacity).
+때문. 가스계/유도등 함수명은 기존 그대로 유지했다(evaluate_gas/evaluate_evac_light/
+evaluate_evac_discharge_capacity). 자탐 판정은 evaluate_fire_alarm(z-score)을
+폐기하고 evaluate_loop_resistance(2층 구조)로 전면 교체했다.
 
-=== 자탐 z-score (evaluate_fire_alarm) ===
-배경: 자탐 루프는 배선 열화(부식, 접촉불량)가 진행되면 저항이 서서히 상승한다.
-법정 점검은 연 1~2회뿐이라 그 사이의 서서히 진행되는 열화를 못 잡는다.
-그래서 상시 수신되는 저항값의 "최근 이동평균 대비 오늘 값이 얼마나 벗어났는가"를
-z-score로 계산해 점검 사이 기간의 이상 징후를 잡아낸다.
+=== 자탐 루프저항 2층 판정 (evaluate_loop_resistance) ===
+배경: 기존 z-score(이동평균 기반) 판정은, baseline 자체가 서서히 오르는 저항값을
+계속 따라가면서(baseline이 최신값을 뒤쫓듯 같이 상승) 진짜 "가속 열화"를 정상
+범위로 오판하는 문제가 실측 검증 중 발견됐다. baseline이 최근 이력의 평균인 이상,
+느리게 진행되는 추세 자체를 baseline이 흡수해버리는 건 이동평균 방식의 구조적
+한계라 임계값 재조정만으로는 못 고친다.
 
-방식: 새 패킷이 들어와 fire_alarm_log에 적재된 직후, 해당 node_id의 최근 이력을
-가져와 (최신값을 제외한) 이동평균/이동표준편차를 baseline으로 삼고,
-최신값이 그 baseline에서 몇 시그마 벗어났는지를 z_score로 기록한다.
+역할 재정립: 급성 단선/합선은 실제 화재수신기가 도통시험으로 이미 실시간 감시
+중이다 — 상위 SW(이 프로젝트)가 같은 역할을 또 할 필요는 없다. 대신 상위 SW는
+① 법정기준(50Ω) 초과 여부(절대 임계값, 1층)와 ② 그 이전 단계의 서서히 진행되는
+열화 추세(선형회귀 기울기, 2층)를 보는 2층 구조로 역할을 재정립했다:
 
-판정 기준(v3 — 지속성/persistence 조건 추가):
-  alarm:   최근 CONSECUTIVE_COUNT(기본 3)회 중 "연속으로" |z_score| > ALARM_THRESHOLD
-  caution: 최근 CONSECUTIVE_COUNT회 중 CAUTION_MIN_HITS(기본 2)회 이상 |z_score| > CAUTION_THRESHOLD
-  그 외          -> normal
+  1층 (check_absolute_threshold): 보정된 저항값이 법정기준 50Ω을 "초과"하면 즉시
+    alarm. 표본 개수와 무관하게 항상 평가된다 — 급한 이상은 이력이 쌓이길
+    기다리지 않고 바로 잡아야 하기 때문.
+  2층 (check_resistance_trend): 전체 이력에 선형회귀(_fit_slope_intercept 재사용,
+    가스계/유도등과 동일 함수)를 적용해 Ω/day 단위 기울기를 구하고, 그 기울기가
+    LOOP_TREND_ALARM_SLOPE/LOOP_TREND_CAUTION_SLOPE를 넘는지로 caution/alarm을
+    가른다. 표본이 LOOP_TREND_MIN_SAMPLES 미만이면 판정을 보류한다(normal 유지) —
+    초기 구간에 불안정한 기울기로 오경보를 내지 않기 위함이다.
+  최종 status는 두 층 중 더 심각한 쪽(severity 최댓값)을 채택한다 — 1층과 2층은
+  독립적으로 평가되며, 어느 한쪽이라도 alarm이면 최종 alarm이다.
 
-v3에서 지속성 조건을 넣은 이유: 실제 실행 검증 결과 정상 구역에서도 순간적인 |z|>3가
-우연히 한 번씩 튀는 경우(알람 1건, 주의 5건/100건, 약 5~6%)가 있었다. 통계적으로는
-"드물게 우연히 있을 수 있는 정상 범위"이지만, 실전에서 관리자 입장에선 이 정도
-오경보율도 시스템을 신뢰하지 못하게 만든다. 그런데 우리가 진짜로 잡으려는 건
-"배선이 서서히 열화되는 추세"이지 "한 번 튄 순간값"이 아니다 — 그래서 순간적인
-튐은 오히려 걸러내고, 최근 몇 회 연속/다수 초과할 때만 상태를 격상하는 게
-애초 설계 의도(점진적 추세 탐지)에 더 맞다.
+⚠️ 회로 스케일 보정(LOOP_FIXED_OFFSET_OHM, config.py): 실제 조립된 회로
+(fire_alarm_differential_node.ino의 measureLoopResistanceOhm())가 반환하는 raw
+값은 R_loop 고정저항(안전 전류 확보 목적으로 넣은 값) + 가변저항(열화 시뮬레이션용)의
+합이라 253~1413Ω 범위로 나온다 — 법정기준(50Ω)과 스케일이 완전히 다르다. 회로/
+펌웨어는 그대로 두고, 이 판정 함수 내부에서만 raw 값에서 고정저항분을 빼 "가변접점만의
+순수 저항"을 판정에 사용한다. 가스계의 공병중량 차감(_agent_loss_pct, v7 버그수정)과
+정확히 같은 패턴이다 — raw 센서값은 손대지 않고 저장하고, 판정 시점에만 알려진 고정
+오프셋을 보정한다.
 
-⚠️ 임계값(1.8/1.6)이 예전(3.0/2.0)보다 낮아진 이유 — 매직넘버가 아니라 수학적으로
-유도된 값이다: 이동평균/이동표준편차 baseline은 "순수 선형 드리프트"에 대해서는
-기울기(slope)가 아무리 커져도 z-score가 무한정 커지지 않고 창(window) 크기만으로
-정해지는 점근값으로 수렴한다(창 안의 값들 자체도 같은 추세를 타고 있어서, 분자인
-편차와 분모인 표준편차가 같이 커져 서로 상쇄되기 때문). 노이즈가 무시할 만큼 큰
-드리프트에서 점근적으로 도달 가능한 최대 z는 sqrt(3)*sqrt((W+1)/(W-1))이고,
-W=8이면 약 1.96이다. 즉 "|z|>3이 3회 연속"은 진짜 지속적인 열화로는 사실상 도달
-불가능한 조건이고(순수 노이즈로 우연히 튀는 경우에만 가끔 나옴 — 지속성 조건과
-정반대!), 그래서 실측 시뮬레이션으로 이 점근 한계보다 살짝 낮은 임계값을 찾아
-"진짜 지속적 드리프트는 반드시 넘고, 노이즈만으로는 3회 연속 넘기 어려운" 지점으로
-재보정했다. WINDOW_SIZE/임계값을 다시 조정할 때는 이 점근값 공식을 먼저 계산해서
-알람 임계값이 그보다 낮은지 반드시 확인할 것.
+적용 범위: 자탐1(차동식)/자탐2(광전식) 공통 — 루프저항 회로가 두 구역 다 동일 설계라
+기존 z-score도 공통이었고, 이번 교체도 두 구역 다 같이 적용한다. 자탐2의 비화재보
+판별 AI(온도/가스/습도 기반, server/judge/classify.py)는 완전히 별개 로직이라
+이번 변경과 무관하다.
 
-주의: AI/ML이 아니라 순수 통계(이동평균/표준편차) 계산이다.
+배치/스케줄러 없음: evaluate_gas/evaluate_evac_light와 동일하게 "패킷 도착 시마다
+전체 이력을 재조회해 즉석 회귀"하는 패턴을 그대로 재사용한다 — 별도 캐시 테이블이나
+배치 스케줄러는 만들지 않았다.
+
+주의: 여기서도 AI/ML이 아니라 순수 통계(절대 임계값 비교 + 선형회귀)다.
      자탐 설비는 판정 근거가 명확히 설명 가능해야 하므로 이 방식을 유지한다.
 
 === 가스계/유도등 선형회귀 (evaluate_gas / evaluate_evac_light / evaluate_evac_discharge_capacity) ===
@@ -81,12 +87,8 @@ import numpy as np
 sys.path.append(str(Path(__file__).parent.parent))
 from config import (  # noqa: E402
     DEFAULT_EMPTY_CONTAINER_WEIGHT_G, DEFAULT_GAS_TYPE, GAS_LOSS_THRESHOLD_PCT,
-    ZSCORE_ALARM_THRESHOLD as ALARM_THRESHOLD,
-    ZSCORE_CAUTION_MIN_HITS as CAUTION_MIN_HITS,
-    ZSCORE_CAUTION_THRESHOLD as CAUTION_THRESHOLD,
-    ZSCORE_CONSECUTIVE_COUNT as CONSECUTIVE_COUNT,
-    ZSCORE_MIN_HISTORY as MIN_HISTORY,
-    ZSCORE_WINDOW_SIZE as WINDOW_SIZE,
+    LOOP_FIXED_OFFSET_OHM, LOOP_RESISTANCE_HARD_LIMIT_OHM,
+    LOOP_TREND_ALARM_SLOPE, LOOP_TREND_CAUTION_SLOPE, LOOP_TREND_MIN_SAMPLES,
 )
 from dispatch.lcd_buzzer_output import trigger_alert  # noqa: E402
 
@@ -99,100 +101,105 @@ MIN_DISCHARGE_TEST_POINTS = 3         # 실측 방전시험 구간에서 기울�
 
 
 # ---------------------------------------------------------------------------
-# 자탐 z-score
+# 자탐 루프저항 2층 판정
 # ---------------------------------------------------------------------------
-def _fetch_history(conn, node_id: str, exclude_row_id: int, limit: int):
-    """해당 노드의 최신 행을 제외한 과거 이력을 시간 오름차순으로 반환 (baseline 후보)"""
-    cur = conn.execute(
-        """SELECT loop_resistance_ohm FROM fire_alarm_log
-           WHERE node_id = ? AND id != ? ORDER BY ts DESC, id DESC LIMIT ?""",
-        (node_id, exclude_row_id, limit),
-    )
-    values = [v for (v,) in cur.fetchall()]
-    values.reverse()
-    return values
+SEVERITY_RANK = {"normal": 0, "caution": 1, "alarm": 2}
 
 
-def _fetch_recent_z_scores(conn, node_id: str, exclude_row_id: int, limit: int):
-    """이미 계산되어 저장된 최근 z_score들을 시간 오름차순으로 반환 (지속성 판단용)"""
-    cur = conn.execute(
-        """SELECT z_score FROM fire_alarm_log
-           WHERE node_id = ? AND id != ? AND z_score IS NOT NULL
-           ORDER BY ts DESC, id DESC LIMIT ?""",
-        (node_id, exclude_row_id, limit),
-    )
-    values = [v for (v,) in cur.fetchall()]
-    values.reverse()
-    return values
-
-
-def _decide_status(recent_z_scores_including_current):
+def _fetch_loop_resistance_history(conn, node_id: str, exclude_row_id: int):
     """
-    최근 CONSECUTIVE_COUNT개의 z_score(가장 최근 것이 마지막 원소)를 보고 지속성
-    조건에 따라 status를 정한다. 순간적인 튐이 아니라 반복적으로 벗어날 때만
-    격상하는 게 설계 의도이므로, 표본이 CONSECUTIVE_COUNT개 다 모이기 전까지는
-    (초기 구간) alarm으로 격상하지 않는다 — caution은 그보다는 덜 엄격하게,
-    현재까지 모인 표본 안에서 CAUTION_MIN_HITS 이상이면 격상한다.
+    해당 노드의 최신 행을 제외한 전체 이력을 (ts, raw_resistance_ohm) 시간 오름차순으로
+    반환한다. evaluate_gas/evaluate_evac_light와 동일하게 전체 이력을 매번 다시
+    조회한다 — 캐시 없음(파일 상단 "배치/스케줄러 없음" 설명 참고).
     """
-    if len(recent_z_scores_including_current) >= CONSECUTIVE_COUNT:
-        window = recent_z_scores_including_current[-CONSECUTIVE_COUNT:]
-        if all(abs(z) > ALARM_THRESHOLD for z in window):
-            return "alarm"
+    cur = conn.execute(
+        """SELECT ts, loop_resistance_ohm FROM fire_alarm_log
+           WHERE node_id = ? AND id != ? ORDER BY ts ASC""",
+        (node_id, exclude_row_id),
+    )
+    return cur.fetchall()
+
+
+def check_absolute_threshold(corrected_resistance_ohm: float):
+    """1층: 법정 절대 임계값 검증. corrected_resistance_ohm > 50.0 이면 alarm."""
+    if corrected_resistance_ohm > LOOP_RESISTANCE_HARD_LIMIT_OHM:
+        return "alarm", f"법정기준({LOOP_RESISTANCE_HARD_LIMIT_OHM:.0f}Ω) 초과 - 보정저항 {corrected_resistance_ohm:.1f}Ω"
+    return "normal", None
+
+
+def check_resistance_trend(conn, node_id: str, exclude_row_id: int):
+    """
+    2층: 전체 이력(현재 행 제외)에 선형회귀(_fit_slope_intercept 재사용)를 적용해
+    기울기(Ω/day)를 산출한다. raw 이력값에서 LOOP_FIXED_OFFSET_OHM을 뺀 뒤 회귀 —
+    상수 오프셋이라 기울기 자체는 영향받지 않지만, 일관성을 위해 보정된 스케일로
+    통일한다.
+
+    표본 수가 LOOP_TREND_MIN_SAMPLES 미만이면 판정을 보류한다(초기 구간에 불안정한
+    기울기로 오경보를 내지 않기 위함) — (None, None, "normal", None) 반환.
+    """
+    history = _fetch_loop_resistance_history(conn, node_id, exclude_row_id)
+    if len(history) < LOOP_TREND_MIN_SAMPLES:
+        return None, None, "normal", None
+
+    ts_values = [h[0] for h in history]
+    corrected_values = [h[1] - LOOP_FIXED_OFFSET_OHM for h in history]
+    slope_per_sec, _ = _fit_slope_intercept(ts_values, corrected_values)
+    slope_per_day = slope_per_sec * 86400.0
+
+    if slope_per_day >= LOOP_TREND_ALARM_SLOPE:
+        status = "alarm"
+    elif slope_per_day >= LOOP_TREND_CAUTION_SLOPE:
+        status = "caution"
     else:
-        window = recent_z_scores_including_current
+        status = "normal"
 
-    hits = sum(1 for z in window if abs(z) > CAUTION_THRESHOLD)
-    if hits >= CAUTION_MIN_HITS:
-        return "caution"
-    return "normal"
+    rttf_days = None
+    if slope_per_day > 0:
+        latest_corrected = corrected_values[-1]
+        rttf_days = (LOOP_RESISTANCE_HARD_LIMIT_OHM - latest_corrected) / slope_per_day
+
+    reason = None
+    if status != "normal":
+        reason = f"열화 추세 감지 - 기울기 {slope_per_day:.2f}Ω/day"
+
+    return slope_per_day, rttf_days, status, reason
 
 
-def evaluate_fire_alarm(conn, node_id: str, row_id: int, latest_value: float, zone: str = None):
+def evaluate_loop_resistance(conn, node_id: str, row_id: int, raw_resistance_ohm: float, zone: str = None):
     """
-    방금 적재된 fire_alarm_log 행(row_id, 값=latest_value)에 대해 z-score를 계산하고
-    baseline_ohm / z_score / status를 UPDATE로 채워 넣는다.
+    자탐 루프저항 최종 판정(2층 구조 통합). 자탐1(차동식)/자탐2(광전식) 공통 호출.
+    raw_resistance_ohm은 ESP32가 보낸 그대로의 값(고정저항 오프셋 미차감) — DB에도
+    이 raw 값이 이미 INSERT되어 있는 상태에서 호출된다(receiver/packet_parser.py 참고).
 
-    데이터가 부족하거나(MIN_HISTORY 미만) 표준편차가 0이면(값이 완전히 고정)
-    z-score를 계산하지 않고 status='normal'을 유지한다 — 에러를 내지 않는 게 핵심.
+    1층(절대 임계값)과 2층(추세)은 독립적으로 평가하고, 더 심각한 쪽(severity 최댓값,
+    SEVERITY_RANK)을 최종 status로 채택한다 — 급성 이상(1층)과 서서히 진행되는
+    열화(2층)는 서로 다른 원인이라 어느 한쪽만으로 상대를 대체할 수 없다.
 
-    caution/alarm으로 판정되면 공통 출력 채널(server/dispatch/lcd_buzzer_output.py)로
-    알림을 보낸다 — caution은 부저 없이 LCD 표시만(정상 구역에서도 노이즈로 종종 뜨는
-    수준이라 부저까지 울리면 과민해 보임), alarm은 부저+LCD 전부.
+    caution/alarm이면 공통 출력 채널(server/dispatch/lcd_buzzer_output.py)로 알림을
+    보낸다 — caution은 부저 없이 LCD 표시만, alarm은 부저+LCD 전부.
     """
-    hist_values = _fetch_history(conn, node_id, row_id, WINDOW_SIZE)
+    corrected = raw_resistance_ohm - LOOP_FIXED_OFFSET_OHM
 
-    if len(hist_values) < MIN_HISTORY:
-        return  # 초기 구간 — baseline이 아직 불안정하므로 판정 보류
+    status_1, reason_1 = check_absolute_threshold(corrected)
+    slope_per_day, rttf_days, status_2, reason_2 = check_resistance_trend(conn, node_id, row_id)
 
-    n = len(hist_values)
-    baseline = sum(hist_values) / n
-    variance = sum((v - baseline) ** 2 for v in hist_values) / (n - 1) if n > 1 else 0.0
-    std = variance ** 0.5
-
-    if std == 0:
-        # 이전 이력의 값이 전부 동일 — z-score 정의 불가, baseline만 기록
-        conn.execute(
-            "UPDATE fire_alarm_log SET baseline_ohm=?, z_score=NULL, status='normal' WHERE id=?",
-            (baseline, row_id),
-        )
-        conn.commit()
-        return
-
-    z = (latest_value - baseline) / std
-
-    recent_z_scores = _fetch_recent_z_scores(conn, node_id, row_id, CONSECUTIVE_COUNT - 1)
-    status = _decide_status(recent_z_scores + [z])
+    if SEVERITY_RANK[status_1] >= SEVERITY_RANK[status_2]:
+        status, reason = status_1, reason_1
+    else:
+        status, reason = status_2, reason_2
 
     conn.execute(
-        "UPDATE fire_alarm_log SET baseline_ohm=?, z_score=?, status=? WHERE id=?",
-        (baseline, z, status, row_id),
+        """UPDATE fire_alarm_log
+           SET status=?, loop_trend_slope_ohm_per_day=?, loop_rttf_days=?
+           WHERE id=?""",
+        (status, slope_per_day, rttf_days, row_id),
     )
     conn.commit()
 
     if status in ("caution", "alarm"):
         trigger_alert(
             "fire_alarm", zone or node_id,
-            f"루프 저항 z-score 이상 감지 (z={z:.2f}, 저항={latest_value:.2f}Ω, 상태={status})",
+            reason or f"루프저항 이상 감지 (보정저항={corrected:.1f}Ω, 상태={status})",
             severity=status,
         )
 

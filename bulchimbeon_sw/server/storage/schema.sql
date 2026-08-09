@@ -8,17 +8,22 @@
 --   zone_type='photoelectric'(광전식/연기): MQ-2+DHT22 조합으로 "비화재보(오작동) 판별"을
 --     한다 — 이 구역만 AI(RandomForest) 적용 대상이다(§4). 온도상승률/가스농도/습도 세 값을
 --     동시에 봐야 화재/조리연기/평상시가 구분되는 패턴 문제라 단순 임계값으로는 부족함.
--- 두 구역 다 루프저항(z-score)은 공통으로 감시한다.
+-- 두 구역 다 루프저항 판정은 공통으로 적용한다 — 법정 절대임계값(50Ω, 1층) +
+-- 선형회귀 추세(Ω/day, 2층)의 2층 구조(evaluate_loop_resistance, server/judge/regression.py).
+-- 이동평균 z-score 판정은 폐기됐다 — baseline이 서서히 상승하는 저항값을 따라가버려서
+-- 진짜 "가속 열화"를 정상 범위로 오판하는 문제가 실측 검증 중 발견됐기 때문.
 CREATE TABLE IF NOT EXISTS fire_alarm_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ts REAL NOT NULL,
     node_id TEXT NOT NULL,
     zone TEXT NOT NULL,
     zone_type TEXT,                      -- 'differential' / 'photoelectric' — 어느 판정 로직을 적용할지
-    loop_resistance_ohm REAL NOT NULL,   -- 루프 저항 실측값 (두 구역 공통)
-    baseline_ohm REAL,                   -- 이동평균 베이스라인
-    z_score REAL,                        -- 베이스라인 대비 편차
-    status TEXT DEFAULT 'normal',        -- normal / caution / alarm (루프저항 z-score 판정)
+    loop_resistance_ohm REAL NOT NULL,   -- 루프 저항 raw 실측값 (두 구역 공통, 고정저항 오프셋 미차감)
+    baseline_ohm REAL,                   -- [레거시] 이동평균 z-score 판정 폐기(2026-08-09) 이전 데이터에만 값이 있음
+    z_score REAL,                        -- [레거시] 이동평균 z-score 판정 폐기(2026-08-09) 이전 데이터에만 값이 있음
+    loop_trend_slope_ohm_per_day REAL,   -- 2층: 선형회귀 기울기 (Ω/day, 고정저항 보정된 값 기준)
+    loop_rttf_days REAL,                 -- 2층: 잔여 고장시간 예측 (일), 기울기<=0이면 NULL
+    status TEXT DEFAULT 'normal',        -- normal / caution / alarm (루프저항 2층 판정)
     temp_rise_rate REAL,                 -- 차동식구역: 온도 상승률(°C/초) — 화재 재현 판정 근거
     mq2_raw INTEGER,                     -- 광전식구역: MQ-2 가스센서 원시값 (ADS1115 A0)
     temp_c REAL,                         -- 광전식구역: DHT22 온도

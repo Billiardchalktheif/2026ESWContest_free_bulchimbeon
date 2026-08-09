@@ -35,7 +35,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from judge.classify import handle_nuisance_prediction, predict_nuisance_label, predict_pump_label  # noqa: E402
 from judge.regression import (  # noqa: E402
-    evaluate_evac_discharge_capacity, evaluate_evac_light, evaluate_fire_alarm, evaluate_gas,
+    evaluate_evac_discharge_capacity, evaluate_evac_light, evaluate_loop_resistance, evaluate_gas,
 )
 from judge.rules import evaluate_tamper  # noqa: E402
 from pump_performance_test import determine_valve_state, evaluate_pump_performance_sample  # noqa: E402
@@ -47,9 +47,10 @@ HEARTBEAT_TIMEOUT_SEC = 90
 # 각 .ino 파일도 이 값을 판단 기준(NTP_SYNCED_THRESHOLD)으로 쓰고 있어 서버도 동일한
 # 값을 쓴다. ESP32의 NTP 재시도 로직을 붙잡고 씨름하는 대신, 서버가 이 값을 그대로
 # 믿지 않고 "패킷을 받은 이 순간의 서버 시각"으로 갈아치운다 — 라즈베리파이는 상시
-# 네트워크에 연결돼 있어 시각을 이미 신뢰할 수 있는 쪽이기 때문. z-score/선형회귀는
-# 전부 ts 기반 시계열이라, 1970년대 근처 값이 하나라도 섞이면 baseline/기울기 계산이
-# 통째로 깨진다 — 이 보정이 없으면 그 오류를 데이터 쪽에서 걸러낼 방법이 없다.
+# 네트워크에 연결돼 있어 시각을 이미 신뢰할 수 있는 쪽이기 때문. 루프저항 추세/
+# 가스계/유도등 선형회귀는 전부 ts 기반 시계열이라, 1970년대 근처 값이 하나라도
+# 섞이면 기울기 계산이 통째로 깨진다 — 이 보정이 없으면 그 오류를 데이터 쪽에서
+# 걸러낼 방법이 없다.
 NTP_SYNCED_THRESHOLD_TS = 1700000000
 
 
@@ -121,8 +122,8 @@ def handle_packet(conn, pkt: dict):
                 pkt.get("mq2_raw"), pkt.get("temp_c"), pkt.get("humidity_pct"), label,
             ),
         )
-        # 적재 직후 이동평균 대비 z-score 판정 (통계 기반, ML 아님) — 두 구역 공통
-        evaluate_fire_alarm(conn, node_id, cur.lastrowid, loop_resistance, zone)
+        # 적재 직후 루프저항 2층 판정 (법정 절대임계값 + 선형회귀 추세) — 두 구역 공통
+        evaluate_loop_resistance(conn, node_id, cur.lastrowid, loop_resistance, zone)
 
         # 비화재보 판별 AI(2번째 AI 적용 지점) — 광전식구역이면서 label이 없는
         # 경우(=학습 데이터 수집이 아니라 실측 운영 데이터)에만 추론을 돌린다.

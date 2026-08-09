@@ -56,7 +56,10 @@ def get_fire_alarm_cards(conn, heartbeats):
     node_id별 최신 1건씩. v4: 자탐 2구역이 센서 구성이 완전히 달라(§3), zone_type에
     따라 카드에 보여줄 핵심 수치도 다르다 — differential(차동식)은 온도상승률(dT/dt),
     photoelectric(광전식)은 비화재보 판별 AI 결과(predicted_label/confidence)를 보여준다.
-    루프저항 z-score는 두 구역 공통이라 항상 표시한다.
+    루프저항 2층 판정(절대임계값+선형회귀)은 두 구역 공통이라 항상 표시한다.
+    z-score 폐기 이후 loop_trend_slope_ohm_per_day(Ω/day 추세)/loop_rttf_days(잔여
+    고장시간 예측)를 대신 노출한다 — baseline_ohm/z_score는 레거시 컬럼이라 더 이상
+    새로 채워지지 않는다(server/storage/schema.sql 참고).
     """
     rows = conn.execute(
         """SELECT f.* FROM fire_alarm_log f
@@ -72,8 +75,8 @@ def get_fire_alarm_cards(conn, heartbeats):
             "zone": r["zone"],
             "zone_type": r["zone_type"],
             "loop_resistance_ohm": r["loop_resistance_ohm"],
-            "baseline_ohm": r["baseline_ohm"],
-            "z_score": r["z_score"],
+            "loop_trend_slope_ohm_per_day": r["loop_trend_slope_ohm_per_day"],
+            "loop_rttf_days": r["loop_rttf_days"],
             "status": r["status"],
             "temp_rise_rate": r["temp_rise_rate"],
             "mq2_raw": r["mq2_raw"],

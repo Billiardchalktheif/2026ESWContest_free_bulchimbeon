@@ -32,15 +32,24 @@ GAS_LOSS_THRESHOLD_PCT = {
 # 0.0으로 두면 총중량 기준 계산이 되어 손실률이 과소평가된다(v7 버그수정 배경 참고).
 DEFAULT_EMPTY_CONTAINER_WEIGHT_G = 0.0
 
-# ---- 자탐 z-score 지속성(persistence) 조건 (server/judge/regression.py에서 사용) ----
-ZSCORE_WINDOW_SIZE = 8        # baseline 계산에 사용할 최근 이력 개수
-# 주의: window가 너무 크면 이동평균 자체가 서서히 진행되는 드리프트를 따라가버려서
-# (baseline이 최신값을 뒤쫓듯 같이 상승) z-score가 항상 낮게 나와 알람이 안 뜨는
-# 문제가 생긴다. 실측 시뮬레이션으로 튜닝한 결과 8 부근이 균형점이었다.
-ZSCORE_MIN_HISTORY = 5        # 이 개수 미만이면 baseline이 불안정하므로 z-score 계산 보류
-# 임계값(1.8/1.6)이 통상적인 3.0/2.0보다 낮은 이유는 매직넘버가 아니라 수학적으로 유도된
-# 값이다 — 자세한 유도 과정은 server/judge/regression.py의 evaluate_fire_alarm docstring 참고.
-ZSCORE_CAUTION_THRESHOLD = 1.6
-ZSCORE_ALARM_THRESHOLD = 1.8
-ZSCORE_CONSECUTIVE_COUNT = 3     # "최근 몇 회"를 지속성 판단 창으로 볼지
-ZSCORE_CAUTION_MIN_HITS = 2      # caution: 이 창 안에서 몇 회 이상 초과해야 격상할지(다수결, 연속 아님)
+# ---- 자탐 루프저항 판정 (server/judge/regression.py의 evaluate_loop_resistance에서 사용) ----
+# 두 구역(자탐1 차동식/자탐2 광전식) 공통 — 루프저항 회로가 동일 설계이기 때문.
+# z-score(이동평균 기반) 판정은 폐기했다 — baseline 자체가 서서히 상승하는 저항값을
+# 따라가버려서, 진짜 "가속 열화"를 정상 범위로 오판하는 문제가 실측 검증 중 발견됐다.
+# 급성 단선/합선은 실제 화재수신기가 도통시험으로 이미 실시간 감시 중이므로, 상위
+# SW는 법정기준(50Ω) 초과 여부(절대 임계값, 1층)와 그 이전 서서히 진행되는 열화
+# 추세(선형회귀 기울기, 2층)를 보는 2층 구조로 재정립했다.
+LOOP_RESISTANCE_HARD_LIMIT_OHM = 50.0  # 법정기준 (소방시설등 점검관리 매뉴얼 - 회로저항시험)
+# ⚠️ 회로 스케일 보정 — 반드시 실측 후 재조정 필요.
+# measureLoopResistanceOhm()이 반환하는 raw 값은 R_loop 고정저항(안전 전류 확보용,
+# 나사식 열화 시뮬레이션 지점이 아니라 회로 안전을 위해 넣은 고정 성분) +
+# 가변저항(열화 시뮬레이션) 합산치다. 법정기준(50Ω)과 비교하려면 고정저항분을 빼서
+# "가변접점만의 순수 저항"을 써야 한다. 아래 253.0은 자탐1 실물실험 기록에서 관측된
+# 가변저항 최소값(253~1413Ω 범위)을 임시 근사치로 쓴 것 — 나사/포텐셔미터를 완전히
+# "열화 없음" 위치에 놓고 멀티미터로 R_loop 고정저항 실측 후 정확한 값으로 교체할 것.
+LOOP_FIXED_OFFSET_OHM = 253.0
+# 하루당 저항 상승폭(Ω/day) 기준 — 임시값, 실측 데이터 축적 후 재조정 필요
+LOOP_TREND_ALARM_SLOPE = 2.0
+LOOP_TREND_CAUTION_SLOPE = 0.5
+LOOP_TREND_MIN_SAMPLES = 3  # 이 미만이면 추세 판정 보류(NORMAL 유지) — 가스계/유도등의
+                             # MIN_POINTS(5)와 별개 상수. 자탐은 초기 반응성을 더 우선시함
