@@ -21,11 +21,14 @@ evaluate_evac_discharge_capacity). 자탐 판정은 evaluate_fire_alarm(z-score)
   1층 (check_absolute_threshold): 보정된 저항값이 법정기준 50Ω을 "초과"하면 즉시
     alarm. 표본 개수와 무관하게 항상 평가된다 — 급한 이상은 이력이 쌓이길
     기다리지 않고 바로 잡아야 하기 때문.
-  2층 (check_resistance_trend): 전체 이력에 선형회귀(_fit_slope_intercept 재사용,
-    가스계/유도등과 동일 함수)를 적용해 Ω/day 단위 기울기를 구하고, 그 기울기가
-    LOOP_TREND_ALARM_SLOPE/LOOP_TREND_CAUTION_SLOPE를 넘는지로 caution/alarm을
-    가른다. 표본이 LOOP_TREND_MIN_SAMPLES 미만이면 판정을 보류한다(normal 유지) —
-    초기 구간에 불안정한 기울기로 오경보를 내지 않기 위함이다.
+  2층 (check_resistance_trend): 최근 이력(최대 LOOP_TREND_HISTORY_LIMIT=20개)에
+    선형회귀(_fit_slope_intercept 재사용, 가스계/유도등과 동일 함수)를 적용해 Ω/day
+    단위 기울기를 구하고, 그 기울기가 LOOP_TREND_ALARM_SLOPE/LOOP_TREND_CAUTION_SLOPE를
+    넘는지로 caution/alarm을 가른다. 가스계/유도등과 달리 전체 이력이 아니라 최근
+    구간만 쓰는 이유: 오래전에 한 번 튄 스파이크가 전체 이력에 계속 남아 있으면
+    시간이 지나 이미 정상으로 돌아온 뒤에도 그 스파이크가 기울기를 계속 왜곡한다.
+    표본이 LOOP_TREND_MIN_SAMPLES 미만이면 판정을 보류한다(normal 유지) — 초기
+    구간에 불안정한 기울기로 오경보를 내지 않기 위함이다.
   최종 status는 두 층 중 더 심각한 쪽(severity 최댓값)을 채택한다 — 1층과 2층은
   독립적으로 평가되며, 어느 한쪽이라도 alarm이면 최종 alarm이다.
 
@@ -106,18 +109,29 @@ MIN_DISCHARGE_TEST_POINTS = 3         # 실측 방전시험 구간에서 기울�
 SEVERITY_RANK = {"normal": 0, "caution": 1, "alarm": 2}
 
 
+LOOP_TREND_HISTORY_LIMIT = 20  # 회귀에 쓸 최근 표본 개수 상한 — 아래 함수 설명 참고
+
+
 def _fetch_loop_resistance_history(conn, node_id: str, exclude_row_id: int):
     """
-    해당 노드의 최신 행을 제외한 전체 이력을 (ts, raw_resistance_ohm) 시간 오름차순으로
-    반환한다. evaluate_gas/evaluate_evac_light와 동일하게 전체 이력을 매번 다시
-    조회한다 — 캐시 없음(파일 상단 "배치/스케줄러 없음" 설명 참고).
+    해당 노드의 최신 행을 제외한 이력 중 "최근 LOOP_TREND_HISTORY_LIMIT개"만 (ts,
+    raw_resistance_ohm) 시간 오름차순으로 반환한다. evaluate_gas/evaluate_evac_light는
+    전체 이력을 다 쓰지만(캐시 없음 — 파일 상단 "배치/스케줄러 없음" 설명 참고),
+    자탐은 최근 구간만 쓰도록 다르게 뒀다 — 오래전에 한 번 튄 스파이크가 전체 이력에
+    계속 남아 있으면, 시간이 아무리 지나도 그 스파이크가 회귀 기울기를 계속 왜곡하기
+    때문이다(전체 이력 회귀는 "지금은 이미 정상으로 돌아왔는데 과거 스파이크 때문에
+    기울기가 여전히 커 보이는" 상황을 못 걷어낸다). ORDER BY ts DESC LIMIT으로 최근
+    것만 뽑은 뒤 다시 오름차순으로 뒤집는다 — LOOP_TREND_MIN_SAMPLES(3)는 이 함수가
+    반환하는 개수에 대해 그대로 적용되므로 바뀌지 않는다.
     """
     cur = conn.execute(
         """SELECT ts, loop_resistance_ohm FROM fire_alarm_log
-           WHERE node_id = ? AND id != ? ORDER BY ts ASC""",
-        (node_id, exclude_row_id),
+           WHERE node_id = ? AND id != ? ORDER BY ts DESC LIMIT ?""",
+        (node_id, exclude_row_id, LOOP_TREND_HISTORY_LIMIT),
     )
-    return cur.fetchall()
+    rows = cur.fetchall()
+    rows.reverse()
+    return rows
 
 
 def check_absolute_threshold(corrected_resistance_ohm: float):
@@ -129,7 +143,7 @@ def check_absolute_threshold(corrected_resistance_ohm: float):
 
 def check_resistance_trend(conn, node_id: str, exclude_row_id: int):
     """
-    2층: 전체 이력(현재 행 제외)에 선형회귀(_fit_slope_intercept 재사용)를 적용해
+    2층: 최근 이력(최대 LOOP_TREND_HISTORY_LIMIT개, 현재 행 제외)에 선형회귀(_fit_slope_intercept 재사용)를 적용해
     기울기(Ω/day)를 산출한다. raw 이력값에서 LOOP_FIXED_OFFSET_OHM을 뺀 뒤 회귀 —
     상수 오프셋이라 기울기 자체는 영향받지 않지만, 일관성을 위해 보정된 스케일로
     통일한다.
