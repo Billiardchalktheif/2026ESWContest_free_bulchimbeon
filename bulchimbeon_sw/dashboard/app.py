@@ -20,7 +20,7 @@ from pump_performance_test import (  # noqa: E402
     mark_valve_state_manual,
 )
 from judge.regression import EVAC_MIN_DISCHARGE_MIN  # noqa: E402
-from config import DB_PATH  # noqa: E402
+from config import DB_PATH, LOOP_FIXED_OFFSET_OHM  # noqa: E402
 
 HEARTBEAT_TIMEOUT_SEC = 90  # server/receiver/packet_parser.py와 동일 기준
 
@@ -60,6 +60,13 @@ def get_fire_alarm_cards(conn, heartbeats):
     z-score 폐기 이후 loop_trend_slope_ohm_per_day(Ω/day 추세)/loop_rttf_days(잔여
     고장시간 예측)를 대신 노출한다 — baseline_ohm/z_score는 레거시 컬럼이라 더 이상
     새로 채워지지 않는다(server/storage/schema.sql 참고).
+
+    카드 기본 화면엔 raw가 아니라 보정값(loop_resistance_corrected_ohm =
+    raw - LOOP_FIXED_OFFSET_OHM)을 메인으로 보여준다 — 실제로 법정기준(50Ω)과
+    비교되는 건 보정값이지 raw가 아니므로, raw를 기본으로 보여주면 관리사가
+    "50Ω 넘었네 정상이네"를 raw 숫자만 보고 착각할 위험이 있다. raw/오프셋/계산식은
+    평소엔 숨겨두고(<details>) 필요할 때만 펼쳐보게 한다(server/judge/regression.py의
+    evaluate_loop_resistance와 동일한 보정 방식).
     """
     rows = conn.execute(
         """SELECT f.* FROM fire_alarm_log f
@@ -70,13 +77,31 @@ def get_fire_alarm_cards(conn, heartbeats):
     ).fetchall()
     cards = []
     for r in rows:
+        raw_ohm = r["loop_resistance_ohm"]
+        corrected_ohm = raw_ohm - LOOP_FIXED_OFFSET_OHM
+
+        # RTTF(잔여 고장시간 예측)는 "이미 법정기준을 넘어선 뒤에도 여전히 상승 중"인
+        # 표본에서는 (50 - 보정저항)이 음수가 되어 "마이너스 며칠"처럼 보이는 문제가
+        # 있었다 — 이미 넘은 상태에 "앞으로 며칠 남았다"는 표현 자체가 성립하지
+        # 않으므로, 음수면 명시적으로 "이미 기준 초과"로 바꿔서 보여준다.
+        rttf = r["loop_rttf_days"]
+        if rttf is not None and rttf < 0:
+            loop_rttf_display = "이미 기준 초과"
+        elif rttf is not None:
+            loop_rttf_display = f"{rttf:.1f}일"
+        else:
+            loop_rttf_display = "N/A"
+
         cards.append({
             "node_id": r["node_id"],
             "zone": r["zone"],
             "zone_type": r["zone_type"],
-            "loop_resistance_ohm": r["loop_resistance_ohm"],
+            "loop_resistance_ohm": raw_ohm,                        # 상세 펼침용 raw
+            "loop_resistance_offset_ohm": LOOP_FIXED_OFFSET_OHM,   # 상세 펼침용 오프셋
+            "loop_resistance_corrected_ohm": corrected_ohm,        # 기본 표시 — 보정값이 메인
             "loop_trend_slope_ohm_per_day": r["loop_trend_slope_ohm_per_day"],
-            "loop_rttf_days": r["loop_rttf_days"],
+            "loop_rttf_days": rttf,
+            "loop_rttf_display": loop_rttf_display,
             "status": r["status"],
             "temp_rise_rate": r["temp_rise_rate"],
             "mq2_raw": r["mq2_raw"],
