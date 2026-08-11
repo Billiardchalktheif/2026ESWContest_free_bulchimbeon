@@ -47,7 +47,7 @@ LOOP_RESISTANCE_HARD_LIMIT_OHM = 50.0  # 법정기준 (소방시설등 점검관
 # "가변접점만의 순수 저항"을 써야 한다. 아래 253.0은 자탐1 실물실험 기록에서 관측된
 # 가변저항 최소값(253~1413Ω 범위)을 임시 근사치로 쓴 것 — 나사/포텐셔미터를 완전히
 # "열화 없음" 위치에 놓고 멀티미터로 R_loop 고정저항 실측 후 정확한 값으로 교체할 것.
-LOOP_FIXED_OFFSET_OHM = 253.0
+LOOP_FIXED_OFFSET_OHM = 242.0
 # 하루당 저항 상승폭(Ω/day) 기준 — 임시값, 실측 데이터 축적 후 재조정 필요
 LOOP_TREND_ALARM_SLOPE = 2.0
 LOOP_TREND_CAUTION_SLOPE = 0.5
