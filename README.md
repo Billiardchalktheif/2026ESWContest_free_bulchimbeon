@@ -33,6 +33,7 @@
 - `가스계_실험가이드.md` — 로드셀을 이용한 가스저장용기의 무게 변화(공병중량 분리 계산) 확인
 - `소화기_실험가이드.md` — 자이로 센서 및 게이트웨이와의 통신 연결 상태를 통해 도난/분실 확인
 - `유도등_실험가이드.md` — 유도등 구동전압 탐색 및 배터리 방전 실험
+- `유도등_실험가이드_v2.md` — 유도등 노드의 수정본(조도센서 사용 방안 삭제)
 - `실험_캘리브레이션_데이터축적_통합정리.md` — 6개 엣지 실험을 "캘리브레이션/추세축적/AI학습축적/반복검증" 관점으로 재구성한 통합 인덱스 (무엇을·왜·얼마나 쌓아야 하는지 빠르게 파악용)
 
 ## server/ — 실제 동작 코드
@@ -47,8 +48,9 @@
 | `extinguisher_leafnode.ino` | 소화기 리프노드 ×4 | ESP32-C3, MPU6500+딥슬립, ESP-NOW 송신 |
 | `extinguisher_gateway.ino` | 소화기 게이트웨이 | ESP-NOW 수신 → WiFi/UDP 중계, 상시전원 |
 | `evac_light_node.ino` | 유도등 | CD74HC4067 멀티플렉서, 데모모드(20분→45초 압축) 포함 |
+| `evac_light_node_v2.ino` | 유도등 | 아날로그 멀티플렉서 및 조도센서 사용 삭제 |
 
-*(라즈베리파이 서버 쪽 파이썬 코드는 추가되는 대로 이 표에 이어서 정리 예정)*
+*(라즈베리파이 서버 쪽 파이썬 코드는 bulchimbeon_sw에서 정리 예정)*
 
 
 ## app/ — 네이티브 앱(Flutter) 개발
@@ -178,10 +180,12 @@
   - 가스계_실험가이드.md
   - 소화기_실험가이드.md
   - 유도등_실험가이드.md
+  - 유도등_실험가이드_v2.md
   - 실험_캘리브레이션_데이터축적_통합정리.md
 
 - `server/`
   - evac_light_node.ino
+  - evac_light_node_v2.ino
   - extinguisher_gateway.ino
   - extinguisher_leafnode.ino
   - fire_alarm_differential_node.ino
