@@ -53,3 +53,30 @@ LOOP_TREND_ALARM_SLOPE = 2.0
 LOOP_TREND_CAUTION_SLOPE = 0.5
 LOOP_TREND_MIN_SAMPLES = 3  # 이 미만이면 추세 판정 보류(NORMAL 유지) — 가스계/유도등의
                              # MIN_POINTS(5)와 별개 상수. 자탐은 초기 반응성을 더 우선시함
+
+# ---- online/offline 판정 기준 (device_type별, receiver/packet_parser.py의
+# mark_offline_nodes / dashboard/app.py의 get_heartbeats에서 사용) ----
+# 장비마다 정상적인 전송 주기가 크게 달라서(자탐/수계/소화기/유도등은 초 단위,
+# 가스계는 실배포 기준 1일 간격) 공통 타임아웃 하나로는 가스계가 항상 offline로
+# 오판된다 — 하루에 한 번만 보내는데 90초 무수신 기준을 적용하면 항상 timeout이기
+# 때문. device_type 기준으로 분리했다.
+HEARTBEAT_TIMEOUT_SEC = {
+    "fire_alarm": 90,
+    "water_pump": 90,
+    "extinguisher": 90,
+    "evac_light": 90,
+    "gas": 130000,  # 가스 ESP32의 실배포 기준 SEND_INTERVAL_MS(86400000ms=1일)의 1.5배 여유.
+                     # ⚠️ 가스 노드를 시연용으로 짧은 주기(예: 5초)로 바꿔놔도 이 값은 실배포
+                     # 기준 그대로 둘 것 — 시연 중엔 90초보다 훨씬 자주 오므로 여유 있는
+                     # 130000초 기준을 그대로 써도 online으로 정상 표시된다(esp32/gas_node/
+                     # gas_node.ino 상단 주석 참고).
+}
+DEFAULT_HEARTBEAT_TIMEOUT_SEC = 90  # device_type이 위 딕셔너리에 없을 때 fallback
+
+
+def is_node_online(device_type: str, last_seen: float, now: float) -> bool:
+    """device_type별 heartbeat 타임아웃 기준으로 온라인 여부를 판정하는 공통 진입점.
+    packet_parser.py(오프라인 표시)와 dashboard/app.py(배지 표시)가 똑같이 이 함수만
+    거치도록 해서, 두 곳의 판정 기준이 따로 놀지 않게 한다."""
+    timeout = HEARTBEAT_TIMEOUT_SEC.get(device_type, DEFAULT_HEARTBEAT_TIMEOUT_SEC)
+    return (now - last_seen) <= timeout

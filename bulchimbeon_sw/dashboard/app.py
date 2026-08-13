@@ -20,9 +20,7 @@ from pump_performance_test import (  # noqa: E402
     mark_valve_state_manual,
 )
 from judge.regression import EVAC_MIN_DISCHARGE_MIN  # noqa: E402
-from config import DB_PATH, LOOP_FIXED_OFFSET_OHM  # noqa: E402
-
-HEARTBEAT_TIMEOUT_SEC = 90  # server/receiver/packet_parser.py와 동일 기준
+from config import DB_PATH, LOOP_FIXED_OFFSET_OHM, is_node_online  # noqa: E402
 
 app = Flask(__name__)
 
@@ -35,14 +33,17 @@ def get_db():
 
 def get_heartbeats(conn):
     """전체 노드의 생사 상태. last_seen이 오래됐으면 화면에서도 offline으로 재판정
-    (receiver/udp_listener.py의 5초 폴링 타이밍과 어긋나도 대시보드가 항상 최신으로 보이게)"""
+    (receiver/udp_listener.py의 5초 폴링 타이밍과 어긋나도 대시보드가 항상 최신으로 보이게).
+    타임아웃 기준은 device_type마다 다르므로(가스계는 실배포 기준 1일 간격) config.py의
+    is_node_online()을 packet_parser.py의 mark_offline_nodes()와 공유해서 쓴다 — 두 곳이
+    따로 기준을 들고 있으면 서버 판정과 화면 표시가 어긋날 수 있기 때문."""
     rows = conn.execute(
         "SELECT node_id, device_type, last_seen, status FROM node_heartbeat ORDER BY device_type, node_id"
     ).fetchall()
     now = time.time()
     result = {}
     for r in rows:
-        online = (now - r["last_seen"]) < HEARTBEAT_TIMEOUT_SEC
+        online = is_node_online(r["device_type"], r["last_seen"], now)
         result[r["node_id"]] = {
             "device_type": r["device_type"],
             "online": online,

@@ -39,8 +39,7 @@ from judge.regression import (  # noqa: E402
 )
 from judge.rules import evaluate_tamper  # noqa: E402
 from pump_performance_test import determine_valve_state, evaluate_pump_performance_sample  # noqa: E402
-
-HEARTBEAT_TIMEOUT_SEC = 90
+from config import is_node_online  # noqa: E402
 
 # ESP32 쪽 NTP 동기화가 아직 안 됐을 때(부팅 직후, 또는 NTP 서버 접속 실패 지속)
 # getEpochSeconds()가 millis()/1000.0(부팅 후 경과초, 예: 12.5)을 그대로 보낸다 —
@@ -236,10 +235,24 @@ def handle_packet(conn, pkt: dict):
 
 
 def mark_offline_nodes(conn):
-    """heartbeat 타임아웃 넘은 노드를 offline으로 표시"""
-    cutoff = time.time() - HEARTBEAT_TIMEOUT_SEC
-    conn.execute(
-        "UPDATE node_heartbeat SET status='offline' WHERE last_seen < ? AND status='online'",
-        (cutoff,),
+    """
+    heartbeat 타임아웃(device_type별 기준, config.py의 is_node_online) 넘은 노드를
+    offline으로 표시한다. device_type마다 정상 전송 주기가 크게 달라서(가스계는
+    실배포 기준 1일 간격) 단일 cutoff로는 못 걸러내므로, 온라인 노드를 전부 읽어와
+    device_type별 기준으로 하나씩 판정한다.
+    """
+    now = time.time()
+    rows = conn.execute(
+        "SELECT node_id, device_type, last_seen FROM node_heartbeat WHERE status='online'"
+    ).fetchall()
+    stale_node_ids = [
+        node_id for node_id, device_type, last_seen in rows
+        if not is_node_online(device_type, last_seen, now)
+    ]
+    if not stale_node_ids:
+        return
+    conn.executemany(
+        "UPDATE node_heartbeat SET status='offline' WHERE node_id=?",
+        [(node_id,) for node_id in stale_node_ids],
     )
     conn.commit()

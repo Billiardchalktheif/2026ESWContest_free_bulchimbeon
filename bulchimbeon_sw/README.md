@@ -122,8 +122,13 @@ python ml/evaluate_predictions.py
       있다는 불확실성과 무관하게 라벨 체계가 안 흔들리게 했다. 지금 재현 가능한 실험
       조건(체절/부하/공회전)으로는 3클래스만 실제로 채워진다 — 나머지 둘은 추가 실험
       조건이 생기면 채울 자리
-- [x] node_heartbeat로 노드 생사 확인 가능 (90초 미수신 시 offline), boot_id로 재부팅과
-      시퀀스 역행(패킷 유실)을 구분
+- [x] node_heartbeat로 노드 생사 확인 가능, boot_id로 재부팅과 시퀀스 역행(패킷 유실)을
+      구분. **online/offline 판정 기준은 device_type별로 분리됨** — 자탐/수계/소화기/
+      유도등은 90초 미수신 시 offline이지만, 가스계는 실배포 기준 전송주기(1일)가
+      훨씬 길어서 90초 기준을 쓰면 항상 offline로 오판된다. `server/config.py`의
+      `HEARTBEAT_TIMEOUT_SEC` 딕셔너리(`is_node_online()`)로 device_type마다 다른
+      타임아웃을 적용하며, `receiver/packet_parser.py`(오프라인 표시)와
+      `dashboard/app.py`(배지 표시)가 이 함수 하나만 공유해서 쓴다
 - [x] Flask 대시보드 — 5개 설비 카드 + heartbeat + 자탐2 AI 판정 + 수계 성능시험 대조
 - [x] ESP32 펌웨어 7종 전부 작성 (확정 핀 배치 반영, 미검증·실물 미연결)
 - [x] 가스계/유도등 예측 정확도 검증 스크립트 (MAE, 시드 고정 재현 가능, v5에서 유도등
@@ -165,6 +170,12 @@ python ml/evaluate_predictions.py
    - 수계 성능시험 실행 주기 — 현재 `ENVIRONMENT="testbed"`(6시간 간격)로 설정됨.
      **실배포 전 반드시 `"deployment"`(180일, 법정 종합점검 주기)로 전환**할 것
      (`server/pump_performance_test.py` + `pump_node.ino`의 `PUMP_TEST_ENVIRONMENT_TESTBED` 매크로)
+   - 가스계 전송주기 — 현재 `esp32/gas_node/gas_node.ino`의 `SEND_INTERVAL_MS`가
+     시연/테스트용으로 5000(5초)로 낮춰져 있음. **결선(실배포) 전 반드시
+     86400000UL(24시간, 원래 값은 파일에 주석으로 남겨둠)로 복귀**할 것 — 안 잊게
+     파일 상단에도 경고 주석을 남겨뒀지만, 결선 체크리스트에도 별도로 체크 항목을
+     추가해둘 것을 권장. (서버 쪽 `HEARTBEAT_TIMEOUT_SEC["gas"]`는 시연/실배포와
+     무관하게 실배포 기준 그대로 둬도 되므로 안 건드려도 됨 — §"node_heartbeat" 참고)
    - 체절 상태 전류가 실제로 "체절운전(stall_operation)"이라는 라벨명에 맞게 높게
      나오는지 펌프(DC모터) 특성상 검증 필요 — 반대로 나와도 라벨명 자체(§"수계 라벨" 참고)는
      안 바뀌므로 로직 자체는 무너지지 않음
