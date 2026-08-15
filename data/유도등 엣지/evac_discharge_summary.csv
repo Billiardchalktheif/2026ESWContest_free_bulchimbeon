@@ -1,0 +1,6 @@
+charge_duration,n_sessions_in_file,main_session_id,main_session_total_sec,sec_below_300mV,voltage_at_300mV_cross,sec_below_200mV,voltage_at_200mV_cross,sec_below_100mV,voltage_at_100mV_cross,voltage_at_1200sec_20min
+1h,1,1,433,145,0.2977,167,0.1968,199,0.0991,N/A (test ended before 20min)
+2h,2,1,1170,425,0.2948,477,0.1988,557,0.097,N/A (test ended before 20min)
+4h,3,3,3409,0,0.0802,0,0.0802,0,0.0802,0.147
+6h,1,1,2309,503,0.2484,1511,0.1988,2231,0.0989,0.2649
+8h,1,1,3126,1446,0.2985,2107,0.1987,3015,0.0993,0.3121
