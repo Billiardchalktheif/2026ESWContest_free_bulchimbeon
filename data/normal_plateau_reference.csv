@@ -1,0 +1,16 @@
+﻿session_id,label,plateau_mq2_avg,plateau_mq2_min,plateau_mq2_max,plateau_humidity_avg,plateau_temp_avg,n_tail_samples
+normal_01,normal,11366.6,11341,11395,59.37,26.16,7
+normal_02,normal,11575.7,11551,11594,59.05,26.12,6
+normal_03,normal,11605.3,11572,11634,58.8,26.1,6
+normal_04,normal,11457.7,11418,11488,58.8,26.1,6
+normal_05,normal,11372.8,11334,11400,58.57,26.12,6
+normal_06,normal,11182.9,11140,11228,58.54,26.1,7
+normal_07,normal,11021.8,10997,11045,58.32,26.1,6
+normal_08,normal,10902.3,10886,10921,58.17,26.1,6
+normal_09,normal,10750.2,10719,10773,58.03,26.08,6
+normal_10,normal,10640.7,10620,10656,58.02,26.02,6
+normal_11,normal,10488.3,10474,10502,57.97,26.1,6
+normal_12,normal,10442.0,10435,10456,57.68,26.1,6
+normal_13,normal,10355.3,10335,10373,57.82,26.1,6
+normal_14,normal,10256.3,10246,10267,57.57,26.2,6
+normal_15,normal,10169.8,10138,10184,57.47,26.2,6
