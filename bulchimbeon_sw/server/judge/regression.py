@@ -97,7 +97,7 @@ from dispatch.lcd_buzzer_output import trigger_alert  # noqa: E402
 
 MIN_POINTS = 5                    # 회귀에 필요한 최소 데이터 개수 (미만이면 예측 보류)
 
-EVAC_DISCHARGE_THRESHOLD_V = 3.0     # 유도등 배터리 방전 임계전압 (실측 후 재조정 가능)
+EVAC_DISCHARGE_THRESHOLD_V = 0.3     # 유도등 배터리 방전 임계전압 (실측 후 재조정 가능) + 실측으로 임계값 0.3V로 지정
 EVAC_MIN_DISCHARGE_MIN = 20          # 법정 예비전원 최소 작동시간(일반) — §4
 EVAC_MIN_DISCHARGE_MIN_EXTENDED = 60  # 11층 이상/지하 대형시설 등 — 참고용 옵션 상수
 MIN_DISCHARGE_TEST_POINTS = 3         # 실측 방전시험 구간에서 기울기를 신뢰하기 위한 최소 샘플 수
