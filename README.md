@@ -159,6 +159,19 @@
 
 ## 폴더 구조
 
+- `data/` — 실물 실험 원시 데이터 (엣지·클래스별)
+  - `광전식 엣지/`
+    - `노말(정상상태) 클래스/`
+      - normal_plateau_reference.csv
+      - normal_raw_timeseries.csv
+      - normal_session_summary.csv
+    - `쿠킹(수증기) 클래스/`
+      - vapor_raw_data_소.csv / vapor_raw_data_중.csv / vapor_raw_data_대.csv
+      - vapor_summary_소.csv / vapor_summary_중.csv / vapor_summary_대.csv
+      - 수증기_소중대_통합_분석_리포트.md — 소/중/대 세기별 통합 비교 분석
+  - `유도등 엣지/`
+    - 유도등 방전 실험(충전 1시간).txt
+
 - `docs/`
   - AI_학습_데이터_수집_가이드.md
   - Fail-safe_설계철학_정리.md
