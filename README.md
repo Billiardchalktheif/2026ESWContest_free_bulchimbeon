@@ -54,6 +54,7 @@
 | `extinguisher_gateway.ino` | 소화기 게이트웨이 | ESP-NOW 수신 → WiFi/UDP 중계, 상시전원 |
 | `evac_light_node.ino` | 유도등 | CD74HC4067 멀티플렉서, 데모모드(20분→45초 압축) 포함 |
 | `evac_light_node_v2.ino` | 유도등 | 아날로그 멀티플렉서 및 조도센서 사용 삭제 |
+| `evac_light_node_v3.ino` | 유도등 | 방전시험을 거치며 얻은 결과를 기준으로 수정 |
 
 *(라즈베리파이 서버 쪽 파이썬 코드는 bulchimbeon_sw에서 정리 예정)*
 
@@ -217,6 +218,7 @@
 - `server/`
   - evac_light_node.ino
   - evac_light_node_v2.ino
+  - evac_light_node_v3.ino
   - extinguisher_gateway.ino
   - extinguisher_leafnode.ino
   - fire_alarm_differential_node.ino
