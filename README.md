@@ -166,12 +166,22 @@
       - normal_plateau_reference.csv
       - normal_raw_timeseries.csv
       - normal_session_summary.csv
-    - `쿠킹(수증기) 클래스/`
+    - `쿠킹(수증기_소중대) 클래스/`
       - vapor_raw_data_소.csv / vapor_raw_data_중.csv / vapor_raw_data_대.csv
       - vapor_summary_소.csv / vapor_summary_중.csv / vapor_summary_대.csv
       - 수증기_소중대_통합_분석_리포트.md — 소/중/대 세기별 통합 비교 분석
+    - `스모킹(연초_전자담배) 클래스/`
+      - ecig_raw_timeseries.csv / ecig_session_summary.csv
+      - tobacco_raw_timeseries.csv / tobacco_session_summary.csv / tobacco_delta_reference.csv
+      - smoking_class_combined.csv
+      - 스모킹_클래스_분석보고서.md — 연초·전자담배 통합 비교 분석
+    - `화재(열원_연기) 클래스/`
+      - incense_raw_timeseries.csv
+      - incense_session_summary.csv
   - `유도등 엣지/`
-    - 유도등 방전 실험(충전 1시간).txt
+    - evac_discharge_1h_charged.csv / _2h_ / _4h_ / _6h_ / _8h_charged.csv
+    - evac_discharge_summary.csv
+    - 유도등_방전시험_통합_분석_리포트.md — 충전시간별 방전 특성 통합 분석
 
 - `docs/`
   - AI_학습_데이터_수집_가이드.md

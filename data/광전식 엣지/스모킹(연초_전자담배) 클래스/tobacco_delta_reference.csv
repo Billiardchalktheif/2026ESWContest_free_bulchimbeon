@@ -1,0 +1,11 @@
+﻿session_id,label,n_samples,mq2_rise_pct,mq2_rise_abs,mq2_rise_rate_per_sample_pct,humidity_rise_pct,humidity_rise_abs_pp,temp_delta_c_within_session
+tobacco_01,tobacco,31,11.93,1093,0.38,5.71,3.8,0.4
+tobacco_02,tobacco,25,15.49,1406,0.62,5.72,3.8,0.1
+tobacco_03,tobacco,34,12.12,1146,0.36,8.72,5.8,0.3
+tobacco_04,tobacco,18,9.7,870,0.54,5.93,4.0,0.1
+tobacco_05,tobacco,25,15.46,1379,0.62,7.16,4.9,0.1
+tobacco_06,tobacco,23,13.9,1263,0.6,5.2,3.6,0.1
+tobacco_07,tobacco,26,14.7,1330,0.57,5.05,3.5,0.1
+tobacco_08,tobacco,28,16.55,1506,0.59,6.65,4.6,0.0
+tobacco_09,tobacco,24,34.91,3107,1.45,9.3,6.5,0.2
+tobacco_10,tobacco,28,17.75,1615,0.63,8.36,5.9,0.0
