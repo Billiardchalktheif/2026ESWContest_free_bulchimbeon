@@ -20,7 +20,7 @@ from pump_performance_test import (  # noqa: E402
     mark_valve_state_manual,
 )
 from judge.regression import EVAC_MIN_DISCHARGE_MIN  # noqa: E402
-from config import DB_PATH, LOOP_FIXED_OFFSET_OHM, is_node_online  # noqa: E402
+from config import DB_PATH, LOOP_FIXED_OFFSET_OHM, DEMO_MODE, is_node_online  # noqa: E402
 
 app = Flask(__name__)
 
@@ -117,6 +117,7 @@ def get_fire_alarm_cards(conn, heartbeats):
             "nuisance_predicted_label": r["predicted_label"],
             "nuisance_confidence": r["confidence"],
             "heartbeat": heartbeats.get(r["node_id"]),
+            "demo_mode": DEMO_MODE,  # 템플릿에서 열화 추세/잔여 고장시간 표시 여부 분기용
         })
     return cards
 

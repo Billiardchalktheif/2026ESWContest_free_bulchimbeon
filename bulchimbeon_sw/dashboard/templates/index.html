@@ -56,8 +56,10 @@
         <div>raw {{ "%.1f"|format(c.loop_resistance_ohm) }} Ω − 오프셋 {{ "%.0f"|format(c.loop_resistance_offset_ohm) }} Ω
           = {{ "%.1f"|format(c.loop_resistance_corrected_ohm) }} Ω</div>
       </details>
+      {% if not c.demo_mode %}
       <div class="row">열화 추세: {{ "%.2f"|format(c.loop_trend_slope_ohm_per_day) if c.loop_trend_slope_ohm_per_day is not none else "표본부족" }} Ω/day</div>
       <div class="row">잔여 고장시간 예측: {{ c.loop_rttf_display }}</div>
+      {% endif %}
       {% if c.zone_type == 'differential' %}
       <div class="row">온도 상승률(dT/dt): <b>{{ "%.3f°C/초"|format(c.temp_rise_rate) if c.temp_rise_rate is not none else "계산중" }}</b></div>
       {% elif c.zone_type == 'photoelectric' %}
