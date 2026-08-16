@@ -23,6 +23,7 @@ import numpy as np
 
 sys.path.append(str(Path(__file__).parent.parent / "server"))
 from feature_extraction import extract_features  # noqa: E402
+from config import LOOP_FIXED_OFFSET_OHM  # noqa: E402
 
 UDP_IP = "127.0.0.1"
 UDP_PORT = 9000
@@ -189,13 +190,14 @@ def stream_pump_performance_test(sock, n_per_state: int = 40, rated_pressure_kpa
 # 기준은 server/judge/regression.py의 evaluate_loop_resistance가 "보정저항"(raw -
 # LOOP_FIXED_OFFSET_OHM)에 대해 적용한다. 더미 생성기는 실제 ESP32처럼 raw(오프셋 포함)
 # 값을 그대로 보내야 하므로, 이 baseline도 실물 회로의 R_loop 고정저항분(config.py의
-# LOOP_FIXED_OFFSET_OHM=253Ω)을 더한 raw 스케일이다 — 오프셋을 안 더하면 서버가 250Ω
-# 넘게 깎아버려서 corrected 값이 음수 근처로 나오고 판정 자체가 무의미해진다.
+# LOOP_FIXED_OFFSET_OHM)을 더한 raw 스케일이다 — 숫자를 여기 또 하드코딩하지 않고
+# config.py에서 직접 import해서 쓴다. 오프셋을 안 더하면 서버가 그만큼 깎아버려서
+# corrected 값이 음수 근처로 나오고 판정 자체가 무의미해진다.
 # 열화가 진행돼도 법정 한계까지는 한참 남은 상태에서 2층(추세) 판정이 먼저 잡아내는
 # 것을 보여주는 게 이 시스템의 핵심 가치이므로, "50Ω(보정 후)을 넘기는 것"이 아니라
 # "서서히 상승하는 추세 자체"를 재현하는 데 집중한다.
 # ---------------------------------------------------------------------------
-FIRE_ALARM_BASELINE_OHM = 20.0 + 253.0  # = 273.0 — 20Ω(보정 후 목표 baseline) + LOOP_FIXED_OFFSET_OHM
+FIRE_ALARM_BASELINE_OHM = 20.0 + LOOP_FIXED_OFFSET_OHM  # 20Ω(보정 후 목표 baseline) + 실측 오프셋(98.4Ω)
 FIRE_ALARM_NOISE_STD = 0.3          # ADS1115(16bit) 기준 — 내장 12bit ADC보다 노이즈 훨씬 작음
 # 상수를 그대로 더하는 오프셋 보정은 절편만 바꿀 뿐 기울기에는 영향이 없으므로
 # DEGRADE_SLOPE(스텝당 상승분)는 그대로 유지한다. 1시간 간격 스텝 기준 0.2Ω/step =
