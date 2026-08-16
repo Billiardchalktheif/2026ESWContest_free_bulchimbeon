@@ -192,10 +192,14 @@ def evaluate_loop_resistance(conn, node_id: str, row_id: int, raw_resistance_ohm
     caution/alarm이면 공통 출력 채널(server/dispatch/lcd_buzzer_output.py)로 알림을
     보낸다 — caution은 부저 없이 LCD 표시만, alarm은 부저+LCD 전부.
     """
-    # 오프셋을 아무리 신중히 잡아도 노이즈로 raw가 오프셋보다 낮게 나올 수 있다.
-    # 루프저항은 물리적으로 음수가 될 수 없으므로, 계산상 음수가 나오면 0으로 클램프한다
-    # — 그렇지 않으면 대시보드에 "-3.8Ω" 같은 물리적으로 말이 안 되는 값이 노출된다.
-    corrected = max(0, raw_resistance_ohm - LOOP_FIXED_OFFSET_OHM)
+    # 저장/회귀용 값 — 클램핑하지 않는다. 음수가 나오는 것 자체가 정상적인 정보이며,
+    # 여기서 0으로 뭉개면 회귀분석에 비대칭 왜곡이 생겨 가짜 열화 추세가 발생한다
+    # (2026-08-16 발견: 오프셋 근처에서 노이즈로 낮게 나온 샘플만 0으로 뭉개지고 높게
+    # 나온 샘플은 그대로 남는 비대칭 클램핑 때문에, 실제로는 열화가 없는데도 인위적인
+    # 양의 기울기가 생겨 79.67Ω/day 같은 값으로 증폭되고 가짜 alarm이 떴던 사례).
+    # 물리적으로 말이 안 되는 음수를 화면에 안 보이게 하는 건 dashboard/app.py가
+    # 표시 직전에만 클램핑해서 처리한다 — 저장값/회귀입력은 항상 원본 그대로.
+    corrected = raw_resistance_ohm - LOOP_FIXED_OFFSET_OHM
 
     status_1, reason_1 = check_absolute_threshold(corrected)
     slope_per_day, rttf_days, status_2, reason_2 = check_resistance_trend(conn, node_id, row_id)

@@ -79,10 +79,14 @@ def get_fire_alarm_cards(conn, heartbeats):
     cards = []
     for r in rows:
         raw_ohm = r["loop_resistance_ohm"]
-        # server/judge/regression.py의 evaluate_loop_resistance와 동일한 이유로 클램프한다
-        # — 오프셋을 신중히 잡아도 노이즈로 raw가 오프셋보다 낮게 나올 수 있고, 루프저항은
-        # 물리적으로 음수가 될 수 없으므로 화면에 "-3.8Ω" 같은 값이 노출되면 안 된다.
-        corrected_ohm = max(0, raw_ohm - LOOP_FIXED_OFFSET_OHM)
+        # DB에는 원본(음수 가능) raw 값만 저장돼 있고, 회귀분석(loop_trend_slope_ohm_per_day/
+        # loop_rttf_days)도 server/judge/regression.py 안에서 이 원본으로 계산된다 —
+        # 그쪽은 절대 건드리지 않는다(2026-08-16: 회귀 입력을 0으로 클램핑했다가 비대칭
+        # 왜곡으로 가짜 열화 추세가 생긴 사례 있음). 여기서는 오직 "사람이 보는 화면"에만
+        # 쓸 값을 계산 직후 바로 클램핑한다 — 물리적으로 말이 안 되는 음수(-3.8Ω 등)가
+        # 카드에 노출되지 않게 하기 위함이고, 이 클램핑은 DB나 다른 계산에 전혀 영향을
+        # 주지 않는다.
+        display_corrected_ohm = max(0, raw_ohm - LOOP_FIXED_OFFSET_OHM)
 
         # RTTF(잔여 고장시간 예측)는 "이미 법정기준을 넘어선 뒤에도 여전히 상승 중"인
         # 표본에서는 (50 - 보정저항)이 음수가 되어 "마이너스 며칠"처럼 보이는 문제가
@@ -102,7 +106,7 @@ def get_fire_alarm_cards(conn, heartbeats):
             "zone_type": r["zone_type"],
             "loop_resistance_ohm": raw_ohm,                        # 상세 펼침용 raw
             "loop_resistance_offset_ohm": LOOP_FIXED_OFFSET_OHM,   # 상세 펼침용 오프셋
-            "loop_resistance_corrected_ohm": corrected_ohm,        # 기본 표시 — 보정값이 메인
+            "loop_resistance_corrected_ohm": display_corrected_ohm,  # 기본 표시 — 화면용으로만 클램핑된 값
             "loop_trend_slope_ohm_per_day": r["loop_trend_slope_ohm_per_day"],
             "loop_rttf_days": rttf,
             "loop_rttf_display": loop_rttf_display,
