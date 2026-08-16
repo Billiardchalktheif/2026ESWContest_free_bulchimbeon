@@ -163,12 +163,14 @@
 ## 폴더 구조
 
 - `data/` — 실물 실험 원시 데이터 (엣지·클래스별, 상세 설명은 `data/README.md` 참고)
-  - `광전식 엣지/`
+  - `광전식 엣지/` — **실험 완료(최종본)**
+    - photoelectric_all_classes_combined.csv — normal/smoking/incense/heat/fire 5클래스 64세션 통합 메인 학습 파일
+    - 자탐2_광전식_최종분석보고서.md — 5클래스 최종 통합 분석 리포트
     - `노말(정상상태) 클래스/`
       - normal_plateau_reference.csv
       - normal_raw_timeseries.csv
       - normal_session_summary.csv
-    - `쿠킹(수증기_소중대) 클래스/`
+    - `쿠킹(수증기_소중대) 클래스/` — 별도 습도 임계값 판별용(5클래스 통합 분석에는 미포함)
       - vapor_raw_data_소.csv / vapor_raw_data_중.csv / vapor_raw_data_대.csv
       - vapor_summary_소.csv / vapor_summary_중.csv / vapor_summary_대.csv
       - 수증기_소중대_통합_분석_리포트.md — 소/중/대 세기별 통합 비교 분석
@@ -177,9 +179,10 @@
       - tobacco_raw_timeseries.csv / tobacco_session_summary.csv / tobacco_delta_reference.csv
       - smoking_class_combined.csv
       - 스모킹_클래스_분석보고서.md — 연초·전자담배 통합 비교 분석
-    - `화재(열원_연기) 클래스/`
-      - incense_raw_timeseries.csv
-      - incense_session_summary.csv
+    - `화재(열원_연기) 클래스/` — incense(연기 단독)·heat(열원 단독)·fire(연기+열원=화재모의) 3종 하위 실험
+      - incense_raw_timeseries.csv / incense_session_summary.csv
+      - heat_raw_timeseries.csv / heat_session_summary.csv
+      - fire_raw_timeseries.csv / fire_session_summary.csv
   - `유도등 엣지/`
     - evac_discharge_1h_charged.csv / _2h_ / _4h_ / _6h_ / _8h_charged.csv
     - evac_discharge_summary.csv
