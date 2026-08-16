@@ -226,6 +226,7 @@
   - fire_alarm_differential_node.ino
   - fire_alarm_photoelectric_node.ino
   - gas_node.ino
+  - gas_node_v2.ino
   - pump_node_INA219.ino
   - *(라즈베리파이 서버 파이썬 코드 추가 예정)*
  
