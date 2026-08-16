@@ -1,0 +1,65 @@
+﻿session_id,label,subtype,condition,n_samples,mq2_rise_pct,humidity_change_pct,temp_rise_c,note
+normal_01,normal,normal,baseline,16,0.0,0.2,0.1,"MQ2 rise = sensor warm-up artifact (cold start), not a real class signal; humidity_change_pct here is abs fluctuation range, not signed rise"
+normal_02,normal,normal,baseline,14,17.53,0.3,0.1,"MQ2 rise = sensor warm-up artifact (cold start), not a real class signal; humidity_change_pct here is abs fluctuation range, not signed rise"
+normal_03,normal,normal,baseline,14,15.5,0.2,0.0,"MQ2 rise = sensor warm-up artifact (cold start), not a real class signal; humidity_change_pct here is abs fluctuation range, not signed rise"
+normal_04,normal,normal,baseline,13,13.39,0.2,0.0,"MQ2 rise = sensor warm-up artifact (cold start), not a real class signal; humidity_change_pct here is abs fluctuation range, not signed rise"
+normal_05,normal,normal,baseline,13,15.41,0.2,0.1,"MQ2 rise = sensor warm-up artifact (cold start), not a real class signal; humidity_change_pct here is abs fluctuation range, not signed rise"
+normal_06,normal,normal,baseline,16,13.06,0.3,0.0,"MQ2 rise = sensor warm-up artifact (cold start), not a real class signal; humidity_change_pct here is abs fluctuation range, not signed rise"
+normal_07,normal,normal,baseline,14,13.89,0.1,0.0,"MQ2 rise = sensor warm-up artifact (cold start), not a real class signal; humidity_change_pct here is abs fluctuation range, not signed rise"
+normal_08,normal,normal,baseline,14,13.74,0.4,0.0,"MQ2 rise = sensor warm-up artifact (cold start), not a real class signal; humidity_change_pct here is abs fluctuation range, not signed rise"
+normal_09,normal,normal,baseline,14,16.01,0.2,0.1,"MQ2 rise = sensor warm-up artifact (cold start), not a real class signal; humidity_change_pct here is abs fluctuation range, not signed rise"
+normal_10,normal,normal,baseline,13,14.54,0.4,0.1,"MQ2 rise = sensor warm-up artifact (cold start), not a real class signal; humidity_change_pct here is abs fluctuation range, not signed rise"
+normal_11,normal,normal,baseline,13,13.29,0.1,0.1,"MQ2 rise = sensor warm-up artifact (cold start), not a real class signal; humidity_change_pct here is abs fluctuation range, not signed rise"
+normal_12,normal,normal,baseline,13,16.53,0.3,0.0,"MQ2 rise = sensor warm-up artifact (cold start), not a real class signal; humidity_change_pct here is abs fluctuation range, not signed rise"
+normal_13,normal,normal,baseline,14,16.47,0.2,0.0,"MQ2 rise = sensor warm-up artifact (cold start), not a real class signal; humidity_change_pct here is abs fluctuation range, not signed rise"
+normal_14,normal,normal,baseline,13,17.74,0.3,0.1,"MQ2 rise = sensor warm-up artifact (cold start), not a real class signal; humidity_change_pct here is abs fluctuation range, not signed rise"
+normal_15,normal,normal,baseline,13,17.87,0.2,0.0,"MQ2 rise = sensor warm-up artifact (cold start), not a real class signal; humidity_change_pct here is abs fluctuation range, not signed rise"
+tobacco_01,smoking,tobacco,outdoor,31,11.93,5.71,0.4,"outdoor session; absolute baseline elevated by weather, use rise% only"
+tobacco_02,smoking,tobacco,outdoor,25,15.49,5.72,0.1,"outdoor session; absolute baseline elevated by weather, use rise% only"
+tobacco_03,smoking,tobacco,outdoor,34,12.12,8.72,0.3,"outdoor session; absolute baseline elevated by weather, use rise% only"
+tobacco_04,smoking,tobacco,outdoor,18,9.7,5.93,0.1,"outdoor session; absolute baseline elevated by weather, use rise% only"
+tobacco_05,smoking,tobacco,outdoor,25,15.46,7.16,0.1,"outdoor session; absolute baseline elevated by weather, use rise% only"
+tobacco_06,smoking,tobacco,outdoor,23,13.9,5.2,0.1,"outdoor session; absolute baseline elevated by weather, use rise% only"
+tobacco_07,smoking,tobacco,outdoor,26,14.7,5.05,0.1,"outdoor session; absolute baseline elevated by weather, use rise% only"
+tobacco_08,smoking,tobacco,outdoor,28,16.55,6.65,0.0,"outdoor session; absolute baseline elevated by weather, use rise% only"
+tobacco_09,smoking,tobacco,outdoor,24,34.91,9.3,0.2,"outdoor session; absolute baseline elevated by weather, use rise% only"
+tobacco_10,smoking,tobacco,outdoor,28,17.75,8.36,0.0,"outdoor session; absolute baseline elevated by weather, use rise% only"
+ecig_01,smoking,ecig,가까이,13,56.69,37.65,0.2,
+ecig_02,smoking,ecig,가까이,14,46.02,42.36,0.2,
+ecig_03,smoking,ecig,중간,16,24.36,15.34,0.3,
+ecig_04,smoking,ecig,중간,19,35.6,18.05,0.6,
+ecig_05,smoking,ecig,중간,16,38.0,20.1,0.4,
+ecig_06,smoking,ecig,중간,15,29.81,20.52,0.4,
+ecig_07,smoking,ecig,멀리서,19,11.88,9.6,0.4,
+ecig_08,smoking,ecig,멀리서,14,10.71,9.9,0.2,
+ecig_09,smoking,ecig,멀리서,16,15.6,10.09,0.4,
+ecig_10,smoking,ecig,멀리서,16,7.48,8.43,0.3,
+incense_01,incense,incense,indoor,28,35.82,4.49,1.4,
+incense_02,incense,incense,indoor,18,12.53,0.0,0.3,
+incense_03,incense,incense,indoor,16,30.45,2.17,0.0,
+incense_04,incense,incense,indoor,24,49.75,5.59,0.8,
+incense_05,incense,incense,indoor,13,30.6,1.05,0.3,
+incense_06,incense,incense,indoor,14,27.69,2.46,0.2,
+incense_07,incense,incense,indoor,14,85.09,3.19,0.2,OUTLIER_CHECK
+incense_08,incense,incense,indoor,14,15.65,0.0,0.0,
+incense_09,incense,incense,indoor,13,52.79,6.37,0.4,
+incense_10,incense,incense,indoor,13,35.75,5.4,0.5,
+heat_01,heat,heat,indoor,14,7.2,-41.07,17.1,"loop_r baseline differs from other sessions (potentiometer variance, confirmed not a data issue)"
+heat_02,heat,heat,indoor,14,0.94,-23.04,9.6,"loop_r baseline differs from other sessions (potentiometer variance, confirmed not a data issue)"
+heat_03,heat,heat,indoor,13,3.76,-33.59,13.0,"loop_r baseline differs from other sessions (potentiometer variance, confirmed not a data issue)"
+heat_04,heat,heat,indoor,13,3.36,-32.95,11.4,"loop_r baseline differs from other sessions (potentiometer variance, confirmed not a data issue)"
+heat_05,heat,heat,indoor,14,3.46,-23.58,9.7,"loop_r baseline differs from other sessions (potentiometer variance, confirmed not a data issue)"
+heat_06,heat,heat,indoor,14,2.83,-21.75,8.6,"loop_r baseline differs from other sessions (potentiometer variance, confirmed not a data issue)"
+heat_07,heat,heat,indoor,13,2.84,-35.38,11.8,"loop_r baseline differs from other sessions (potentiometer variance, confirmed not a data issue)"
+heat_08,heat,heat,indoor,13,2.11,-22.53,8.3,"loop_r baseline differs from other sessions (potentiometer variance, confirmed not a data issue)"
+heat_09,heat,heat,indoor,11,0.45,-34.73,8.5,"loop_r baseline differs from other sessions (potentiometer variance, confirmed not a data issue)"
+heat_10,heat,heat,indoor,13,1.63,-21.51,5.2,"loop_r baseline differs from other sessions (potentiometer variance, confirmed not a data issue)"
+fire_01,fire,incense+heat,indoor,20,30.45,-32.62,10.1,sessions 1+2 merged from overlapping re-recording
+fire_02,fire,incense+heat,indoor,14,24.43,-34.54,13.1,
+fire_03,fire,incense+heat,indoor,13,21.19,-40.33,15.8,
+fire_04,fire,incense+heat,indoor,14,16.82,-35.71,13.0,
+fire_05,fire,incense+heat,indoor,13,23.15,-25.62,10.2,
+fire_06,fire,incense+heat,indoor,13,25.83,-35.67,12.5,
+fire_07,fire,incense+heat,indoor,12,31.23,-43.23,15.7,
+fire_08,fire,incense+heat,indoor,14,29.49,-36.93,13.2,
+fire_09,fire,incense+heat,indoor,14,12.1,-38.85,13.9,
