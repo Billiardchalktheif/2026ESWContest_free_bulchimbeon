@@ -111,27 +111,59 @@ SEVERITY_RANK = {"normal": 0, "caution": 1, "alarm": 2}
 
 LOOP_TREND_HISTORY_LIMIT = 20  # 회귀에 쓸 최근 표본 개수 상한 — 아래 함수 설명 참고
 
+# 회귀 이력 다운샘플링 — 노드별로 N번째 패킷마다 1개만 회귀 이력에 반영한다.
+# 배경: 실제 하드웨어(5초 간격 전송) 기준 100초(20개 샘플) 분량의 정상 노이즈도
+# Ω/day 환산 시 864배 증폭되어 가짜 alarm을 유발하는 문제가 실측으로 확인됐다
+# (2026-08-16). raw 저장·1층 절대임계값 판정·대시보드 실시간 표시는 매 패킷 그대로
+# 유지하고, 2층(추세) 회귀 입력 샘플만 솎아내 시간창을 넓힌다 — 이러면 시연 중
+# 사람이 손으로 크게 흔드는 신호(노이즈보다 훨씬 큼)는 여전히 잡히면서, 결선의
+# 느린 실제 열화 감지에서는 노이즈 증폭이 완화된다.
+# 5개(=25초 간격, 노이즈 증폭 864배→173배)로 설정 — 12개(60초 간격) 대비 시연(3분)
+# 안에 LOOP_TREND_MIN_SAMPLES 조건을 더 빨리 채우도록 반응성을 우선한 값.
+#
+# ⚠️ 2026-08-16 검증 결과: 노이즈 증폭 자체는 이론대로 ~5배 줄었지만(실측으로도 확인),
+# 절대적인 크기가 여전히 LOOP_TREND_ALARM_SLOPE(2.0Ω/day)보다 훨씬 커서
+# (FIRE_ALARM_NOISE_STD=0.3Ω 기준 노이즈만으로도 기울기 표준편차가 수백 Ω/day대) 5/8/12/20
+# 등 어떤 값으로 바꿔도 simulate/verify_loop_resistance_judgment.py의 D시나리오(목표
+# alarm 비율 5% 이하)를 통과하지 못했다(20~60% 수준) — 다운샘플링만으로는 이 노이즈
+# 수준에서 근본적으로 해결이 안 되고, LOOP_TREND_ALARM_SLOPE/CAUTION_SLOPE 자체를
+# 같이 올리거나 원시 신호에 이동평균 등 별도 스무딩을 얹어야 할 가능성이 높다 —
+# 다만 이 두 상수는 별도 작업 범위라 여기서는 건드리지 않았다.
+LOOP_TREND_DOWNSAMPLE_EVERY_N = 5  # 5개 패킷당 1개만 회귀 이력에 반영 (5초 간격 기준 실질 25초 간격)
+
+# 노드별 패킷 카운터 — 다운샘플링 판단에만 쓰인다. 서버 재시작 시 0으로 리셋되지만,
+# 회귀 이력 자체는 DB에 남아있으므로 판정 정확도에 실질적 영향은 없다(재시작 직후
+# 몇 개 패킷만 다운샘플링 판단이 어긋날 수 있는 수준).
+_loop_packet_counters: dict = {}
+
 
 def _fetch_loop_resistance_history(conn, node_id: str, exclude_row_id: int):
     """
-    해당 노드의 최신 행을 제외한 이력 중 "최근 LOOP_TREND_HISTORY_LIMIT개"만 (ts,
-    raw_resistance_ohm) 시간 오름차순으로 반환한다. evaluate_gas/evaluate_evac_light는
-    전체 이력을 다 쓰지만(캐시 없음 — 파일 상단 "배치/스케줄러 없음" 설명 참고),
-    자탐은 최근 구간만 쓰도록 다르게 뒀다 — 오래전에 한 번 튄 스파이크가 전체 이력에
-    계속 남아 있으면, 시간이 아무리 지나도 그 스파이크가 회귀 기울기를 계속 왜곡하기
-    때문이다(전체 이력 회귀는 "지금은 이미 정상으로 돌아왔는데 과거 스파이크 때문에
-    기울기가 여전히 커 보이는" 상황을 못 걷어낸다). ORDER BY ts DESC LIMIT으로 최근
-    것만 뽑은 뒤 다시 오름차순으로 뒤집는다 — LOOP_TREND_MIN_SAMPLES(3)는 이 함수가
-    반환하는 개수에 대해 그대로 적용되므로 바뀌지 않는다.
+    해당 노드의 최신 행을 제외한 이력 중 "최근 LOOP_TREND_HISTORY_LIMIT개(다운샘플링
+    적용)"를 (ts, raw_resistance_ohm) 시간 오름차순으로 반환한다. evaluate_gas/
+    evaluate_evac_light는 전체 이력을 다 쓰지만(캐시 없음 — 파일 상단 "배치/스케줄러
+    없음" 설명 참고), 자탐은 최근 구간만 쓰도록 다르게 뒀다 — 오래전에 한 번 튄
+    스파이크가 전체 이력에 계속 남아 있으면, 시간이 아무리 지나도 그 스파이크가 회귀
+    기울기를 계속 왜곡하기 때문이다(전체 이력 회귀는 "지금은 이미 정상으로 돌아왔는데
+    과거 스파이크 때문에 기울기가 여전히 커 보이는" 상황을 못 걷어낸다).
+
+    다운샘플링(LOOP_TREND_DOWNSAMPLE_EVERY_N): raw 20개를 그대로 쓰면(5초 간격 하드웨어
+    기준) 겨우 100초 분량이라 노이즈가 Ω/day로 환산될 때 864배 증폭된다. 그래서 최근
+    raw LOOP_TREND_HISTORY_LIMIT*LOOP_TREND_DOWNSAMPLE_EVERY_N개(100개=500초 분량)를
+    먼저 가져온 뒤, 오래된 쪽부터 N개마다 1개씩만 골라 LOOP_TREND_HISTORY_LIMIT개로
+    줄인다 — 이러면 같은 20개 표본이 100초가 아니라 500초에 걸쳐 퍼지므로 노이즈
+    증폭 배율이 864배에서 약 173배로 줄어든다. LOOP_TREND_MIN_SAMPLES(3)는 이 함수가
+    반환하는(다운샘플링된) 개수에 대해 그대로 적용된다.
     """
     cur = conn.execute(
         """SELECT ts, loop_resistance_ohm FROM fire_alarm_log
            WHERE node_id = ? AND id != ? ORDER BY ts DESC LIMIT ?""",
-        (node_id, exclude_row_id, LOOP_TREND_HISTORY_LIMIT),
+        (node_id, exclude_row_id, LOOP_TREND_HISTORY_LIMIT * LOOP_TREND_DOWNSAMPLE_EVERY_N),
     )
     rows = cur.fetchall()
-    rows.reverse()
-    return rows
+    rows.reverse()  # 오름차순(오래된 것 먼저)
+    downsampled = rows[::LOOP_TREND_DOWNSAMPLE_EVERY_N]
+    return downsampled[-LOOP_TREND_HISTORY_LIMIT:]
 
 
 def check_absolute_threshold(corrected_resistance_ohm: float):
@@ -141,12 +173,27 @@ def check_absolute_threshold(corrected_resistance_ohm: float):
     return "normal", None
 
 
+def _slope_to_status(slope_per_day):
+    """Ω/day 기울기 하나만 보고 caution/alarm/normal을 가르는 임계값 비교 —
+    check_resistance_trend와 다운샘플링으로 회귀를 건너뛴 패킷(직전 기울기 재사용,
+    evaluate_loop_resistance 참고)이 동일한 기준을 쓰도록 여기 한 곳에 모았다."""
+    if slope_per_day is None:
+        return "normal"
+    if slope_per_day >= LOOP_TREND_ALARM_SLOPE:
+        return "alarm"
+    if slope_per_day >= LOOP_TREND_CAUTION_SLOPE:
+        return "caution"
+    return "normal"
+
+
 def check_resistance_trend(conn, node_id: str, exclude_row_id: int):
     """
     2층: 최근 이력(최대 LOOP_TREND_HISTORY_LIMIT개, 현재 행 제외)에 선형회귀(_fit_slope_intercept 재사용)를 적용해
     기울기(Ω/day)를 산출한다. raw 이력값에서 LOOP_FIXED_OFFSET_OHM을 뺀 뒤 회귀 —
     상수 오프셋이라 기울기 자체는 영향받지 않지만, 일관성을 위해 보정된 스케일로
-    통일한다.
+    통일한다. 이 이력은 이미 다운샘플링된 값들이다(evaluate_loop_resistance가
+    LOOP_TREND_DOWNSAMPLE_EVERY_N번째 패킷마다만 이 함수를 호출한다) — 그래서
+    _fetch_loop_resistance_history 자체는 손댈 필요가 없다.
 
     표본 수가 LOOP_TREND_MIN_SAMPLES 미만이면 판정을 보류한다(초기 구간에 불안정한
     기울기로 오경보를 내지 않기 위함) — (None, None, "normal", None) 반환.
@@ -160,12 +207,7 @@ def check_resistance_trend(conn, node_id: str, exclude_row_id: int):
     slope_per_sec, _ = _fit_slope_intercept(ts_values, corrected_values)
     slope_per_day = slope_per_sec * 86400.0
 
-    if slope_per_day >= LOOP_TREND_ALARM_SLOPE:
-        status = "alarm"
-    elif slope_per_day >= LOOP_TREND_CAUTION_SLOPE:
-        status = "caution"
-    else:
-        status = "normal"
+    status = _slope_to_status(slope_per_day)
 
     rttf_days = None
     if slope_per_day > 0:
@@ -191,6 +233,14 @@ def evaluate_loop_resistance(conn, node_id: str, row_id: int, raw_resistance_ohm
 
     caution/alarm이면 공통 출력 채널(server/dispatch/lcd_buzzer_output.py)로 알림을
     보낸다 — caution은 부저 없이 LCD 표시만, alarm은 부저+LCD 전부.
+
+    2층(추세)은 raw INSERT/1층 판정과 달리 매 패킷 재계산하지 않는다 —
+    LOOP_TREND_DOWNSAMPLE_EVERY_N번째 패킷마다만 새로 회귀를 돌리고, 그 사이에는
+    직전에 계산된 slope/rttf를 그대로 재사용한다(DB에서 이 노드의 마지막 non-null
+    추세값을 가져옴). _fetch_loop_resistance_history 자체도 다운샘플링된 넓은
+    시간창을 보므로 노이즈는 이미 억제되지만, 매 패킷 재계산하면 표본이 1개씩만
+    밀리면서 값이 미세하게 계속 흔들려 "추세가 매 패킷 급격히 사라졌다 나타났다"
+    하는 것처럼 보일 수 있다 — 갱신 주기 자체를 늦춰 화면이 더 안정적으로 보이게 한다.
     """
     # 저장/회귀용 값 — 클램핑하지 않는다. 음수가 나오는 것 자체가 정상적인 정보이며,
     # 여기서 0으로 뭉개면 회귀분석에 비대칭 왜곡이 생겨 가짜 열화 추세가 발생한다
@@ -202,7 +252,25 @@ def evaluate_loop_resistance(conn, node_id: str, row_id: int, raw_resistance_ohm
     corrected = raw_resistance_ohm - LOOP_FIXED_OFFSET_OHM
 
     status_1, reason_1 = check_absolute_threshold(corrected)
-    slope_per_day, rttf_days, status_2, reason_2 = check_resistance_trend(conn, node_id, row_id)
+
+    # 다운샘플링 판단 — N번째 패킷마다 1개만 회귀를 새로 돌린다
+    count = _loop_packet_counters.get(node_id, 0) + 1
+    _loop_packet_counters[node_id] = count
+    include_in_regression_history = (count % LOOP_TREND_DOWNSAMPLE_EVERY_N == 0)
+
+    if include_in_regression_history:
+        slope_per_day, rttf_days, status_2, reason_2 = check_resistance_trend(conn, node_id, row_id)
+    else:
+        # 직전 계산값 재사용 — 이 노드의 마지막 non-null 추세값을 DB에서 그대로 가져온다.
+        prev = conn.execute(
+            """SELECT loop_trend_slope_ohm_per_day, loop_rttf_days FROM fire_alarm_log
+               WHERE node_id=? AND loop_trend_slope_ohm_per_day IS NOT NULL
+               ORDER BY id DESC LIMIT 1""",
+            (node_id,),
+        ).fetchone()
+        slope_per_day, rttf_days = (prev[0], prev[1]) if prev else (None, None)
+        status_2 = _slope_to_status(slope_per_day)
+        reason_2 = f"열화 추세 감지(직전 회귀값 재사용) - 기울기 {slope_per_day:.2f}Ω/day" if status_2 != "normal" else None
 
     if SEVERITY_RANK[status_1] >= SEVERITY_RANK[status_2]:
         status, reason = status_1, reason_1

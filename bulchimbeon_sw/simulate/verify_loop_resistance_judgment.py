@@ -5,13 +5,18 @@ z-score에서 절대임계값+선형회귀 2층 구조로 전면 교체됐기 �
 그에 맞게 새로 짰다. 임시 DB 생성 -> handle_packet() 직접 호출 -> 상태 이력 검사라는
 스크립트 구조 자체는 그대로 재사용했다.
 
-세 시나리오:
+네 시나리오:
   A구역(정상): raw 값이 baseline 근처에서 노이즈만 있고 추세 없음 -> 거의 항상 normal.
   B구역(서서히 열화): raw 값이 시간에 따라 서서히 증가 -> normal -> caution -> alarm 전이.
   C구역(절대 임계값 즉시 초과): 표본이 LOOP_TREND_MIN_SAMPLES 미만인 초기 상태에서
     raw 값이 갑자기 크게 튐 -> 추세 판정(2층)은 표본 부족으로 보류(normal)여도,
     절대 임계값(1층)은 즉시 alarm으로 판정하는지 확인 — 두 층이 독립적으로
     동작하는지 검증하는 핵심 케이스.
+  D구역(고빈도 노이즈, 실제 하드웨어 재현): 자탐1 실물(SEND_INTERVAL_MS=5000)과
+    동일한 5초 간격으로 baseline 근처 순수 노이즈만 보내, 다운샘플링
+    (LOOP_TREND_DOWNSAMPLE_EVERY_N) 적용 후 가짜 alarm 비율이 목표(5% 이하)로
+    억제되는지 확인 — 2026-08-16 실측에서 다운샘플링 이전엔 30개 중 8개(약 27%)
+    수준으로 가짜 alarm이 발생했던 문제의 회귀 검증.
 
 사용법: python simulate/verify_loop_resistance_judgment.py
 """
@@ -140,6 +145,26 @@ def check_absolute_threshold_independence(conn: sqlite3.Connection, node_id: str
     return True
 
 
+def check_high_frequency_noise_no_false_alarm(conn: sqlite3.Connection, node_id: str) -> bool:
+    """
+    D구역: 5초 간격 전송을 재현한 순수 노이즈 데이터에서, 다운샘플링 적용 후
+    alarm 비율이 크게 낮아지는지 확인한다. 다운샘플링 이전(직전 버그 상태)에는
+    30개 중 8개(약 27%) 수준의 가짜 alarm이 발생했음 — 이 테스트는 그 수치가
+    유의미하게 개선됐는지(5% 이하 목표) 검증한다.
+    """
+    rows = conn.execute(
+        "SELECT status FROM fire_alarm_log WHERE node_id=? ORDER BY ts ASC", (node_id,)
+    ).fetchall()
+    statuses = [r[0] for r in rows]
+    alarm_ratio = statuses.count("alarm") / len(statuses)
+    print(f"\n[{node_id}] 5초간격 노이즈 alarm 비율: {alarm_ratio:.0%} (표본 {len(statuses)}개)")
+    if alarm_ratio > 0.05:
+        print("  [FAIL] 다운샘플링 적용 후에도 alarm 비율이 5%를 초과함 - 추가 조정 필요")
+        return False
+    print("  [PASS] 다운샘플링으로 가짜 alarm이 억제됨")
+    return True
+
+
 def run_verification(n_points: int = 100) -> bool:
     conn = build_test_db()
     ts = time.time()
@@ -183,10 +208,22 @@ def run_verification(n_points: int = 100) -> bool:
     })
     ok_c = check_absolute_threshold_independence(conn, "fire_zone_C")
 
+    # --- D 시나리오: 5초 간격 순수 노이즈 (실물 하드웨어 재현, 다운샘플링 회귀 검증) ---
+    ts_d = time.time()
+    n_points_d = 150  # 12개당 1개면 회귀 이력 12개, 5개당 1개면 30개 확보되는 넉넉한 개수
+    for i in range(n_points_d):
+        raw = FIRE_ALARM_BASELINE_OHM + RNG.normal(0, FIRE_ALARM_NOISE_STD)
+        handle_packet(conn, {
+            "node_id": "fire_zone_D", "device_type": "fire_alarm",
+            "zone": "D구역(5초간격 노이즈)", "seq": i, "ts": ts_d, "loop_resistance_ohm": raw,
+        })
+        ts_d += 5  # 자탐1 실물(SEND_INTERVAL_MS=5000)과 동일한 간격
+    ok_d = check_high_frequency_noise_no_false_alarm(conn, "fire_zone_D")
+
     conn.close()
     TEST_DB_PATH.unlink()
 
-    all_ok = ok_a and ok_b and ok_c
+    all_ok = ok_a and ok_b and ok_c and ok_d
     print(f"\n{'전체 PASS' if all_ok else '전체 FAIL'}")
     return all_ok
 
