@@ -192,7 +192,10 @@ def evaluate_loop_resistance(conn, node_id: str, row_id: int, raw_resistance_ohm
     caution/alarm이면 공통 출력 채널(server/dispatch/lcd_buzzer_output.py)로 알림을
     보낸다 — caution은 부저 없이 LCD 표시만, alarm은 부저+LCD 전부.
     """
-    corrected = raw_resistance_ohm - LOOP_FIXED_OFFSET_OHM
+    # 오프셋을 아무리 신중히 잡아도 노이즈로 raw가 오프셋보다 낮게 나올 수 있다.
+    # 루프저항은 물리적으로 음수가 될 수 없으므로, 계산상 음수가 나오면 0으로 클램프한다
+    # — 그렇지 않으면 대시보드에 "-3.8Ω" 같은 물리적으로 말이 안 되는 값이 노출된다.
+    corrected = max(0, raw_resistance_ohm - LOOP_FIXED_OFFSET_OHM)
 
     status_1, reason_1 = check_absolute_threshold(corrected)
     slope_per_day, rttf_days, status_2, reason_2 = check_resistance_trend(conn, node_id, row_id)

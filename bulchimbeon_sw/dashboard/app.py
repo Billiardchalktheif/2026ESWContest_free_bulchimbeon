@@ -79,7 +79,10 @@ def get_fire_alarm_cards(conn, heartbeats):
     cards = []
     for r in rows:
         raw_ohm = r["loop_resistance_ohm"]
-        corrected_ohm = raw_ohm - LOOP_FIXED_OFFSET_OHM
+        # server/judge/regression.py의 evaluate_loop_resistance와 동일한 이유로 클램프한다
+        # — 오프셋을 신중히 잡아도 노이즈로 raw가 오프셋보다 낮게 나올 수 있고, 루프저항은
+        # 물리적으로 음수가 될 수 없으므로 화면에 "-3.8Ω" 같은 값이 노출되면 안 된다.
+        corrected_ohm = max(0, raw_ohm - LOOP_FIXED_OFFSET_OHM)
 
         # RTTF(잔여 고장시간 예측)는 "이미 법정기준을 넘어선 뒤에도 여전히 상승 중"인
         # 표본에서는 (50 - 보정저항)이 음수가 되어 "마이너스 며칠"처럼 보이는 문제가

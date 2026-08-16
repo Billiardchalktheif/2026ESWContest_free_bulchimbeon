@@ -197,7 +197,7 @@ def stream_pump_performance_test(sock, n_per_state: int = 40, rated_pressure_kpa
 # 것을 보여주는 게 이 시스템의 핵심 가치이므로, "50Ω(보정 후)을 넘기는 것"이 아니라
 # "서서히 상승하는 추세 자체"를 재현하는 데 집중한다.
 # ---------------------------------------------------------------------------
-FIRE_ALARM_BASELINE_OHM = 20.0 + LOOP_FIXED_OFFSET_OHM  # 20Ω(보정 후 목표 baseline) + 실측 오프셋(98.4Ω)
+FIRE_ALARM_BASELINE_OHM = 20.0 + LOOP_FIXED_OFFSET_OHM  # 20Ω(보정 후 목표 baseline) + 실측 오프셋(config.py 참고, 숫자를 여기 다시 적지 않음)
 FIRE_ALARM_NOISE_STD = 0.3          # ADS1115(16bit) 기준 — 내장 12bit ADC보다 노이즈 훨씬 작음
 # 상수를 그대로 더하는 오프셋 보정은 절편만 바꿀 뿐 기울기에는 영향이 없으므로
 # DEGRADE_SLOPE(스텝당 상승분)는 그대로 유지한다. 1시간 간격 스텝 기준 0.2Ω/step =
