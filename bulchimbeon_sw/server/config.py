@@ -47,9 +47,24 @@ LOOP_RESISTANCE_HARD_LIMIT_OHM = 50.0  # 법정기준 (소방시설등 점검관
 # 최솟값 근처로 잡아야 한다 — 평균값으로 잡으면 정상적인 노이즈 하락만으로도
 # corrected 값이 음수가 되는 문제가 발생하기 때문.
 LOOP_FIXED_OFFSET_OHM = 230
-# 하루당 저항 상승폭(Ω/day) 기준 — 임시값, 실측 데이터 축적 후 재조정 필요
-LOOP_TREND_ALARM_SLOPE = 2.0
-LOOP_TREND_CAUTION_SLOPE = 0.5
+# 하루당 저항 상승폭(Ω/day) 기준. 법정기준(LOOP_RESISTANCE_HARD_LIMIT_OHM)과 달리
+# 이 값은 팀 자체 설계값이며, 실측 노이즈 통계 기반으로 재조정됨(2026-08-16).
+#
+# 재조정 근거: 다운샘플링(LOOP_TREND_DOWNSAMPLE_EVERY_N=5) 적용 상태에서도, 자탐1
+# 실물(5초 간격) 기준 순수 노이즈(FIRE_ALARM_NOISE_STD=0.3Ω)만으로 회귀 기울기가
+# 노드 재시작 직후(회귀 이력 창이 아직 다 안 채워진 "워밍업" 구간, 최초
+# LOOP_TREND_HISTORY_LIMIT*LOOP_TREND_DOWNSAMPLE_EVERY_N=100개 raw 패킷=500초 동안)
+# 표준편차 기준 수백 Ω/day대까지 튈 수 있음을 20회 반복 시뮬레이션(simulate/
+# verify_loop_resistance_judgment.py D시나리오, 노드당 300개 패킷)으로 확인했다.
+# 이 분포의 상위 구간을 안전하게 벗어나면서도(alarm 오탐 비율 실측 0.5%대, 25회
+# 반복 중 최대 3.3%), 시연용으로 새로 설계한 B시나리오의 가속 열화 프로파일
+# (5초 간격, corrected(t_sec) = 4e-5 * t_sec^2 — 사람이 포텐셔미터를 손으로 돌리는
+# 상황을 흉내낸 값)은 caution(70~120초)→alarm(120~270초) 순서로 3분 내외에 안정적으로
+# 전이되는 값을 찾아 아래로 확정했다. LOOP_TREND_MIN_SAMPLES(3)는 이 재조정으로
+# 굳이 안 올려도 목표를 만족해 그대로 뒀다 — 반응 속도(첫 판정까지 75초)를
+# 희생하지 않기 위함.
+LOOP_TREND_ALARM_SLOPE = 700
+LOOP_TREND_CAUTION_SLOPE = 230
 LOOP_TREND_MIN_SAMPLES = 3  # 이 미만이면 추세 판정 보류(NORMAL 유지) — 가스계/유도등의
                              # MIN_POINTS(5)와 별개 상수. 자탐은 초기 반응성을 더 우선시함
 
