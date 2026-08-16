@@ -214,11 +214,15 @@ python ml/evaluate_predictions.py
   스케일로 맞춰뒀다.
 - **자탐 루프저항은 z-score를 폐기하고 2층 구조로 교체됐다** — 1층(`check_absolute_threshold`)은
   보정저항이 법정기준을 초과하면 표본 수와 무관하게 즉시 alarm, 2층(`check_resistance_trend`)은
-  전체 이력에 선형회귀를 적용해 Ω/day 기울기가 `LOOP_TREND_CAUTION_SLOPE`(0.5)/
-  `LOOP_TREND_ALARM_SLOPE`(2.0, 둘 다 임시값)를 넘는지로 판정한다. 두 층은 독립적으로
-  평가되고 더 심각한 쪽이 최종 status가 된다 — 급성 이상(1층)과 서서히 진행되는
-  열화(2층)는 원인이 달라 어느 한쪽이 다른 쪽을 대신할 수 없기 때문. 표본이
-  `LOOP_TREND_MIN_SAMPLES`(3) 미만이면 2층은 판정을 보류(normal)하지만, 이 경우에도
+  다운샘플링(`LOOP_TREND_DOWNSAMPLE_EVERY_N`, `LOOP_TREND_HISTORY_LIMIT`으로 시간창 조절)된
+  이력에 선형회귀를 적용해 Ω/day 기울기가 `LOOP_TREND_CAUTION_SLOPE`(3)/
+  `LOOP_TREND_ALARM_SLOPE`(8, 결선/실사용 전용으로 2026-08-16 재조정된 값 — 시연
+  영상엔 이 2층 판정 자체를 노출하지 않기로 해서 반응속도보다 정확도를 우선했다.
+  자세한 튜닝 근거는 `server/config.py`/`server/judge/regression.py` 주석 참고)를
+  넘는지로 판정한다. 두 층은 독립적으로 평가되고 더 심각한 쪽이 최종 status가 된다 —
+  급성 이상(1층)과 서서히 진행되는 열화(2층)는 원인이 달라 어느 한쪽이 다른 쪽을
+  대신할 수 없기 때문. 표본이 `LOOP_TREND_MIN_SAMPLES`(15) 미만이면 2층은 판정을
+  보류(normal)하지만, 이 경우에도
   1층은 그대로 동작한다(`simulate/verify_loop_resistance_judgment.py`의 C시나리오가
   이 독립성을 검증한다). 폐기 배경: 이동평균 기반 z-score는 baseline 자체가 서서히
   오르는 저항값을 따라가버려서 진짜 "가속 열화"를 정상으로 오판하는 문제가 실측

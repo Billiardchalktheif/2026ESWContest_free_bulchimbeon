@@ -34,6 +34,12 @@ CREATE TABLE IF NOT EXISTS fire_alarm_log (
                                           -- (water_pump_log와 동일 패턴, server/judge/classify.py)
     confidence REAL                      -- 광전식구역: 위 추론의 신뢰도
 );
+-- node_id 기준 조회(회귀 이력 조회, 추세값 재사용 lookback, 하트비트 갱신 등)가
+-- 패킷마다 반복되는데, 인덱스가 없으면 테이블이 커질수록(장기 운영 시 수십만 행)
+-- 매번 전체 스캔이 발생해 사실상 O(n^2)로 느려지는 문제가 결선 전용 재조정
+-- 검증(simulate/verify_loop_resistance_judgment.py B시나리오, 12만개+ 행) 중 실측으로
+-- 확인됐다(2026-08-16). id를 포함해 "최근 N개" 조회(ORDER BY id DESC LIMIT)도 같이 커버한다.
+CREATE INDEX IF NOT EXISTS idx_fire_alarm_log_node_id ON fire_alarm_log(node_id, id);
 
 -- 수계 주펌프: v3에서 "파형분석(AI) + 성능시험" 결합안 도입 (§4).
 -- 성능시험(밸브+압력, 규칙기반)이 확정적 판정을 주고, 그 순간 CT클램프로 캡처한 파형에

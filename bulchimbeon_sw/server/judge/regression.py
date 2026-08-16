@@ -21,7 +21,7 @@ evaluate_evac_discharge_capacity). 자탐 판정은 evaluate_fire_alarm(z-score)
   1층 (check_absolute_threshold): 보정된 저항값이 법정기준 50Ω을 "초과"하면 즉시
     alarm. 표본 개수와 무관하게 항상 평가된다 — 급한 이상은 이력이 쌓이길
     기다리지 않고 바로 잡아야 하기 때문.
-  2층 (check_resistance_trend): 최근 이력(최대 LOOP_TREND_HISTORY_LIMIT=20개)에
+  2층 (check_resistance_trend): 최근 이력(최대 LOOP_TREND_HISTORY_LIMIT=50개)에
     선형회귀(_fit_slope_intercept 재사용, 가스계/유도등과 동일 함수)를 적용해 Ω/day
     단위 기울기를 구하고, 그 기울기가 LOOP_TREND_ALARM_SLOPE/LOOP_TREND_CAUTION_SLOPE를
     넘는지로 caution/alarm을 가른다. 가스계/유도등과 달리 전체 이력이 아니라 최근
@@ -109,27 +109,26 @@ MIN_DISCHARGE_TEST_POINTS = 3         # 실측 방전시험 구간에서 기울�
 SEVERITY_RANK = {"normal": 0, "caution": 1, "alarm": 2}
 
 
-LOOP_TREND_HISTORY_LIMIT = 20  # 회귀에 쓸 최근 표본 개수 상한 — 아래 함수 설명 참고
+LOOP_TREND_HISTORY_LIMIT = 50  # 회귀에 쓸 최근 표본 개수 상한 — 아래 함수 설명 참고
 
 # 회귀 이력 다운샘플링 — 노드별로 N번째 패킷마다 1개만 회귀 이력에 반영한다.
-# 배경: 실제 하드웨어(5초 간격 전송) 기준 100초(20개 샘플) 분량의 정상 노이즈도
-# Ω/day 환산 시 864배 증폭되어 가짜 alarm을 유발하는 문제가 실측으로 확인됐다
-# (2026-08-16). raw 저장·1층 절대임계값 판정·대시보드 실시간 표시는 매 패킷 그대로
-# 유지하고, 2층(추세) 회귀 입력 샘플만 솎아내 시간창을 넓힌다 — 이러면 시연 중
-# 사람이 손으로 크게 흔드는 신호(노이즈보다 훨씬 큼)는 여전히 잡히면서, 결선의
-# 느린 실제 열화 감지에서는 노이즈 증폭이 완화된다.
-# 5개(=25초 간격, 노이즈 증폭 864배→173배)로 설정 — 12개(60초 간격) 대비 시연(3분)
-# 안에 LOOP_TREND_MIN_SAMPLES 조건을 더 빨리 채우도록 반응성을 우선한 값.
+# 배경: 실제 하드웨어(5초 간격 전송) 기준 짧은 시간창의 정상 노이즈도 Ω/day 환산
+# 시 큰 폭으로 증폭되어 가짜 alarm을 유발하는 문제가 실측으로 확인됐다(2026-08-16).
+# raw 저장·1층 절대임계값 판정·대시보드 실시간 표시는 매 패킷 그대로 유지하고,
+# 2층(추세) 회귀 입력 샘플만 솎아내 시간창을 넓힌다.
 #
-# 2026-08-16 1차 검증 결과: 다운샘플링만으로는(5/8/12/20 어떤 값이든) D시나리오
-# (목표 alarm 오탐 비율 5% 이하)를 통과하지 못했다 — 노이즈 증폭 배율은 이론대로
-# ~5배 줄었지만, 절대 크기가 여전히 당시 LOOP_TREND_ALARM_SLOPE(2.0Ω/day)보다
-# 훨씬 컸기 때문(FIRE_ALARM_NOISE_STD=0.3Ω 기준 노이즈만으로도 기울기 표준편차가
-# 수백 Ω/day대). 다운샘플링(시간창 확대)과 LOOP_TREND_ALARM_SLOPE/CAUTION_SLOPE
-# 재조정(config.py, 같은 날짜)을 함께 적용한 뒤에야 D시나리오를 통과했다 — 즉 이
-# 다운샘플링 자체는 "노이즈 증폭을 줄이는" 필요조건이었을 뿐, 최종 임계값과
-# 짝을 맞춰야 완성되는 설계였다.
-LOOP_TREND_DOWNSAMPLE_EVERY_N = 5  # 5개 패킷당 1개만 회귀 이력에 반영 (5초 간격 기준 실질 25초 간격)
+# 튜닝 이력(전부 2026-08-16, 날짜 순):
+#   1차(5개=25초 간격, LOOP_TREND_HISTORY_LIMIT=20, 시연 3분 제약 있던 시절):
+#     다운샘플링만으로는 D시나리오(목표 alarm 오탐 5% 이하)를 통과하지 못했다.
+#     LOOP_TREND_ALARM_SLOPE/CAUTION_SLOPE를 700/230으로 같이 올린 뒤에야 통과.
+#   2차(현재, 시연 3분 제약 해제 — 자탐 회귀분석은 시연 영상에 아예 노출 안 하기로
+#     결정됨. 이 값들은 결선/실사용 전용): 반응속도를 희생해도 되므로 시간창을
+#     100개(=500초 간격, LOOP_TREND_HISTORY_LIMIT=50과 결합해 창 전체 약 6.94시간)로
+#     대폭 넓혔다. 이 상태에서 D시나리오(300일 이상 스팬의 5초 간격 노이즈, 10회
+#     반복)의 steady-state 표준편차가 ~0.45Ω/day, 99th percentile이 ~0.92Ω/day까지
+#     떨어져(1차 대비 노이즈가 200배 이상 더 억제됨), LOOP_TREND_ALARM_SLOPE=8/
+#     CAUTION_SLOPE=3(config.py)로 재조정 후 alarm 오탐 0%(10회 반복 전부)를 달성했다.
+LOOP_TREND_DOWNSAMPLE_EVERY_N = 100  # 100개 패킷당 1개만 회귀 이력에 반영 (5초 간격 기준 실질 500초=8.3분 간격)
 
 # 노드별 패킷 카운터 — 다운샘플링 판단에만 쓰인다. 서버 재시작 시 0으로 리셋되지만,
 # 회귀 이력 자체는 DB에 남아있으므로 판정 정확도에 실질적 영향은 없다(재시작 직후
@@ -147,12 +146,13 @@ def _fetch_loop_resistance_history(conn, node_id: str, exclude_row_id: int):
     기울기를 계속 왜곡하기 때문이다(전체 이력 회귀는 "지금은 이미 정상으로 돌아왔는데
     과거 스파이크 때문에 기울기가 여전히 커 보이는" 상황을 못 걷어낸다).
 
-    다운샘플링(LOOP_TREND_DOWNSAMPLE_EVERY_N): raw 20개를 그대로 쓰면(5초 간격 하드웨어
-    기준) 겨우 100초 분량이라 노이즈가 Ω/day로 환산될 때 864배 증폭된다. 그래서 최근
-    raw LOOP_TREND_HISTORY_LIMIT*LOOP_TREND_DOWNSAMPLE_EVERY_N개(100개=500초 분량)를
-    먼저 가져온 뒤, 오래된 쪽부터 N개마다 1개씩만 골라 LOOP_TREND_HISTORY_LIMIT개로
-    줄인다 — 이러면 같은 20개 표본이 100초가 아니라 500초에 걸쳐 퍼지므로 노이즈
-    증폭 배율이 864배에서 약 173배로 줄어든다. LOOP_TREND_MIN_SAMPLES(3)는 이 함수가
+    다운샘플링(LOOP_TREND_DOWNSAMPLE_EVERY_N): raw 50개를 그대로 쓰면(5초 간격 하드웨어
+    기준) 겨우 250초 분량이라 노이즈가 Ω/day로 환산될 때 크게 증폭된다. 그래서 최근
+    raw LOOP_TREND_HISTORY_LIMIT*LOOP_TREND_DOWNSAMPLE_EVERY_N개(5000개=25000초=
+    6.94시간 분량)를 먼저 가져온 뒤, 오래된 쪽부터 N개마다 1개씩만 골라
+    LOOP_TREND_HISTORY_LIMIT개로 줄인다 — 결선 전용으로 재조정된 값(2026-08-16,
+    자세한 튜닝 이력은 LOOP_TREND_DOWNSAMPLE_EVERY_N 정의부 주석 참고)이라 반응
+    속도보다 노이즈 억제를 우선한다. LOOP_TREND_MIN_SAMPLES(config.py)는 이 함수가
     반환하는(다운샘플링된) 개수에 대해 그대로 적용된다.
     """
     cur = conn.execute(

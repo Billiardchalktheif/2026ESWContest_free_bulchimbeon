@@ -48,25 +48,38 @@ LOOP_RESISTANCE_HARD_LIMIT_OHM = 50.0  # 법정기준 (소방시설등 점검관
 # corrected 값이 음수가 되는 문제가 발생하기 때문.
 LOOP_FIXED_OFFSET_OHM = 230
 # 하루당 저항 상승폭(Ω/day) 기준. 법정기준(LOOP_RESISTANCE_HARD_LIMIT_OHM)과 달리
-# 이 값은 팀 자체 설계값이며, 실측 노이즈 통계 기반으로 재조정됨(2026-08-16).
+# 이 값은 팀 자체 설계값이며, 실측 노이즈 통계 기반으로 재조정됨.
 #
-# 재조정 근거: 다운샘플링(LOOP_TREND_DOWNSAMPLE_EVERY_N=5) 적용 상태에서도, 자탐1
-# 실물(5초 간격) 기준 순수 노이즈(FIRE_ALARM_NOISE_STD=0.3Ω)만으로 회귀 기울기가
-# 노드 재시작 직후(회귀 이력 창이 아직 다 안 채워진 "워밍업" 구간, 최초
-# LOOP_TREND_HISTORY_LIMIT*LOOP_TREND_DOWNSAMPLE_EVERY_N=100개 raw 패킷=500초 동안)
-# 표준편차 기준 수백 Ω/day대까지 튈 수 있음을 20회 반복 시뮬레이션(simulate/
-# verify_loop_resistance_judgment.py D시나리오, 노드당 300개 패킷)으로 확인했다.
-# 이 분포의 상위 구간을 안전하게 벗어나면서도(alarm 오탐 비율 실측 0.5%대, 25회
-# 반복 중 최대 3.3%), 시연용으로 새로 설계한 B시나리오의 가속 열화 프로파일
-# (5초 간격, corrected(t_sec) = 4e-5 * t_sec^2 — 사람이 포텐셔미터를 손으로 돌리는
-# 상황을 흉내낸 값)은 caution(70~120초)→alarm(120~270초) 순서로 3분 내외에 안정적으로
-# 전이되는 값을 찾아 아래로 확정했다. LOOP_TREND_MIN_SAMPLES(3)는 이 재조정으로
-# 굳이 안 올려도 목표를 만족해 그대로 뒀다 — 반응 속도(첫 판정까지 75초)를
-# 희생하지 않기 위함.
-LOOP_TREND_ALARM_SLOPE = 700
-LOOP_TREND_CAUTION_SLOPE = 230
-LOOP_TREND_MIN_SAMPLES = 3  # 이 미만이면 추세 판정 보류(NORMAL 유지) — 가스계/유도등의
-                             # MIN_POINTS(5)와 별개 상수. 자탐은 초기 반응성을 더 우선시함
+# ⚠️ 아래는 "결선(실사용) 전용" 값이다(2026-08-16 2차 재조정) — 시연 영상(3분)에는
+# 자탐 회귀분석(2층 추세 판정) 자체를 노출하지 않기로 결정됐으므로, 이번 재조정은
+# "3분 내 반응"이라는 제약을 완전히 버리고 노이즈 억제(오탐 최소화)만 최우선으로
+# 다시 탐색한 결과다. 대신 결선 후 실제 감지까지 시간이 이전보다 훨씬 길어졌다
+# (최초 판정까지 LOOP_TREND_MIN_SAMPLES*LOOP_TREND_DOWNSAMPLE_EVERY_N*5초 =
+# 15*100*5 = 7500초 ≈ 2.08시간, 회귀 창 전체가 다 채워져 가장 안정될 때까지는
+# LOOP_TREND_HISTORY_LIMIT*LOOP_TREND_DOWNSAMPLE_EVERY_N*5초 = 50*100*5 = 25000초
+# ≈ 6.94시간) — 실제 부식은 원래 수주~수개월 단위로 진행되는 현상이라(설계 문서
+# 기준) 이 정도 지연은 결선 목적에 문제되지 않는다는 판단.
+#
+# 1차 재조정(2026-08-16, 시연 3분 제약이 있던 시절 — 지금은 폐기됨, 참고용 기록):
+#   LOOP_TREND_DOWNSAMPLE_EVERY_N=5, LOOP_TREND_HISTORY_LIMIT=20 기준으로
+#   ALARM_SLOPE=700 / CAUTION_SLOPE=230으로 튜닝했었다. D시나리오 노이즈 표준편차가
+#   당시 수백 Ω/day대였기 때문 — 지금의 훨씬 넓은 시간창 기준으로는 이 값들이 더는
+#   유효하지 않다(시간창이 바뀌면 노이즈 분포 자체가 달라짐).
+#
+# 2차 재조정(현재값 확정 근거): LOOP_TREND_DOWNSAMPLE_EVERY_N=100/
+# LOOP_TREND_HISTORY_LIMIT=50(회귀.py) 기준으로 D시나리오(자탐1 실물과 동일한 5초
+# 간격 순수 노이즈, FIRE_ALARM_NOISE_STD=0.3Ω)를 10회 반복 시뮬레이션(각 15000
+# 패킷 = 약 20.8시간)해 steady-state 기울기 표준편차 ~0.45Ω/day, 99th percentile
+# ~0.92Ω/day를 실측했다. 이 분포를 넉넉히 벗어나는 값으로 아래를 확정한 결과
+# D시나리오 alarm 오탐 비율 0%(10회 반복 전부)를 달성했다. 동시에 "며칠~2주"
+# 단위로 50Ω에 도달하는 진짜 열화(예: 7일 내 도달하는 가속 프로파일)는 caution이
+# 약 2.3일째, alarm이 약 6.4일째에 안정적으로(순서대로) 잡히는 것도 함께 확인했다
+# (simulate/verify_loop_resistance_judgment.py B시나리오 참고).
+LOOP_TREND_ALARM_SLOPE = 8
+LOOP_TREND_CAUTION_SLOPE = 3
+LOOP_TREND_MIN_SAMPLES = 15  # 이 미만이면 추세 판정 보류(NORMAL 유지). 결선 전용 재조정으로
+                              # 3 -> 15로 상향(초기 워밍업 구간의 불안정한 기울기를 더 넓게
+                              # 걸러내기 위함) — 반응속도보다 정확도를 우선한 선택
 
 # ---- online/offline 판정 기준 (device_type별, receiver/packet_parser.py의
 # mark_offline_nodes / dashboard/app.py의 get_heartbeats에서 사용) ----
