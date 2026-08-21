@@ -187,6 +187,10 @@
       - incense_raw_timeseries.csv / incense_session_summary.csv
       - heat_raw_timeseries.csv / heat_session_summary.csv
       - fire_raw_timeseries.csv / fire_session_summary.csv
+  - `가스계 엣지/`
+    - gas_node_log.csv — 로드셀 원본 로그(817포인트, 5분 간격)
+    - gas_regression_chart.png — 회귀검증 차트
+    - 가스계_캘리브레이션_결과_정리.md — 캘리브레이션 확정값(87.9)·온도 드리프트 이슈·10% 손실 임계값 예측 오차(~49분) 정리
   - `유도등 엣지/`
     - evac_discharge_1h_charged.csv / _2h_ / _4h_ / _6h_ / _8h_charged.csv
     - evac_discharge_summary.csv

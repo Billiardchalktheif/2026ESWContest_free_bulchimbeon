@@ -46,6 +46,19 @@
 - **heat_raw_timeseries.csv / heat_session_summary.csv** — 열풍기 단독(연소 없이 열만), 10세션. 컬럼(raw): `session_id, label, idx, loop_r_ohm, mq2_raw, temp_c, humidity_pct` / 컬럼(summary): `session_id, n_samples, loop_r_avg_ohm, mq2_start/peak/rise_pct, temp_start/peak/rise_c, hum_start/min/drop_pp/drop_pct`. 결과: MQ2 +2.86%(거의 무반응), 습도 -29.01%(하강), 온도 +10.32°C — 열만 있고 연소 부산물이 없으면 MQ2가 반응하지 않는다는 대조군.
 - **fire_raw_timeseries.csv / fire_session_summary.csv** — 향+열원 동시(화재 모의), 원래 10세션에서 1·2회차 중복이 확인돼 병합한 9세션. 컬럼(raw): `session_id, label, idx, loop_r_ohm, mq2_raw, temp_c, humidity_pct` / 컬럼(summary): `session_id, n_samples, mq2_start/peak/rise_pct, temp_start/peak/rise_c, hum_start/min/drop_pct`. 결과: MQ2 +23.85%, 습도 -35.94%(전체 클래스 중 최대 하강), 온도 +13.06°C — heat 대비 MQ2 반응과 습도 하강폭이 더 커서 heat와 구분됨.
 
+## 가스계 엣지/
+
+가스저장용기(CO2) 무게를 로드셀(HX711)로 상시 측정해 약제 손실률을 추적하는 실험입니다. 실물 CO2 용기 대신 자동 방향제 분사기(7분 30초 간격 분사)로 무게 손실을 흉내내 약 3.85일간 5분 간격으로 로깅했습니다.
+
+- **gas_node_log.csv** — 원본 로그, 817개 유효 포인트(2026-08-18 16:51 ~ 2026-08-21 12:51, 5분 간격). 컬럼: `datetime, raw(로드셀 원시값), weight_g(환산 중량), loss_pct(초기 대비 손실률)`
+- **gas_regression_chart.png** — 회귀검증 차트(원시 데이터, 온도 안정 구간, 예측/실제 임계값 도달 크로싱 포인트, 실측 대조점 포함)
+- **가스계_캘리브레이션_결과_정리.md** — 캘리브레이션·검증 최종 정리 리포트. 핵심 내용:
+  - 로드셀 신호선 접촉불량 발견·납땜으로 해결(편차 ±162g → ±16g), 최종 캘리브레이션 계수 **87.9**(501g 실측 기준)
+  - **온도 드리프트 이슈(중요)**: 에어컨 on/off에 따라 로드셀 판독값이 최대 ±50g 요동 — 배율 오차가 아닌 영점(TARE) 오차라 %손실 계산에서 상쇄되지 않음. 온도 안정 구간만 분리해 분석했으며, 온도보상 로직은 이번 일정상 미구현(향후 과제로 명시)
+  - 온도 안정 구간(22.8시간) 앞 70%로 회귀 학습 → 10% 손실 임계값 도달 시점 예측, 실제 도달 시점과 대조한 결과 **예측 오차 약 49분**(R²=0.951)
+  - 실측 anchor 기준 3.85일간 손실률 8.58%(환산 2.23%/day), 이 속도 유지 시 10% 도달까지 약 4.48일 소요 예상
+  - ⚠️ 공병중량(EMPTY_CONTAINER_WEIGHT_G) 미차감 상태로 측정됨 — 실제 CO2 용기 설치 시 공병중량 실측·반영 필수. 손실률 임계값도 매뉴얼 기준(1권 10% vs 2권 5%) 확정 대기 중(현재는 10% 기준으로 검증)
+
 ## 유도등 엣지/
 
 유도등 예비전원(Ni-Cd 단일셀, 1.2V)을 충전시간별(1h/2h/4h/6h/8h)로 완충한 뒤 방전시험을 진행해, 정전 시 법정 유지시간(20분) 충족에 필요한 최소 충전시간과 판정 임계전압을 검증한 데이터입니다.
