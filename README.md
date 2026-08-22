@@ -192,6 +192,11 @@
     - gas_node_log.csv — 로드셀 원본 로그(817포인트, 5분 간격)
     - gas_regression_chart.png — 회귀검증 차트
     - 가스계_캘리브레이션_결과_정리.md — 캘리브레이션 확정값(87.9)·온도 드리프트 이슈·10% 손실 임계값 예측 오차(~49분) 정리
+  - `수계 엣지/`
+    - combined_all_labeled.csv — 충압펌프 정상/유량저하/공회전/기동실패 4클래스 통합 학습셋(1,297샘플)
+    - summary_by_class.csv — 클래스별 RMS/Peak/Duty 통계 피벗
+    - summary.md — 채집 방식·클래스별 특징 요약
+    - 충압펌프_전류파형_분석_보고서.md — normal↔low_flow RMS 83.7% 중첩 등 분석 결과 및 다변량 분류 필요성 정리
   - `유도등 엣지/`
     - evac_discharge_1h_charged.csv / _2h_ / _4h_ / _6h_ / _8h_charged.csv
     - evac_discharge_summary.csv

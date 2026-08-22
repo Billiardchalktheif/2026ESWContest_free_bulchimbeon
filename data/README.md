@@ -59,6 +59,19 @@
   - 실측 anchor 기준 3.85일간 손실률 8.58%(환산 2.23%/day), 이 속도 유지 시 10% 도달까지 약 4.48일 소요 예상
   - ⚠️ 공병중량(EMPTY_CONTAINER_WEIGHT_G) 미차감 상태로 측정됨 — 실제 CO2 용기 설치 시 공병중량 실측·반영 필수. 손실률 임계값도 매뉴얼 기준(1권 10% vs 2권 5%) 확정 대기 중(현재는 10% 기준으로 검증)
 
+## 수계 엣지/
+
+충압펌프 INA219 전류값(RMS/Peak/Duty)으로 **정상운전/유량저하/공회전/기동실패** 4가지 상태를 분류하는 AI 모델(`train_pump_classifier.py`) 학습용 데이터입니다. 원래 5개 분류 중 "체절운전"은 정상운전과 파형 차이가 뚜렷하지 않을 것으로 판단해 이번 채집에서는 제외했습니다.
+
+- **combined_all_labeled.csv** — 학습용 통합 데이터셋, 총 1,297개 샘플. 컬럼: `seq, label, condition, rms_mA, peak_mA, duty_cycle, source_file` (채집 스케치에서 `LABEL` 명령이 누락돼 원본 label이 전부 `normal`로 찍힌 버그를 파일명 기준으로 재라벨링해 정정한 버전)
+- **summary_by_class.csv** — 클래스별(normal/low_flow/dryrun/start_fail) rms_mA·peak_mA·duty_cycle의 count/mean/std/min/max 피벗 요약
+- **summary.md** — 채집 방식(INA219, 1.5초 간격 200ms 윈도우 RMS/Peak/Duty)과 클래스별 샘플수·특징 요약, 원본 raw 파일 목록(이 리포지토리에는 통합본만 업로드됨)
+- **충압펌프_전류파형_분석_보고서.md** — 실험 설계·이슈·분석 최종 리포트. 핵심 내용:
+  - 클래스별 샘플: normal 235 / low_flow 867 / dryrun 39 / start_fail 156 (클래스 불균형 있음 — 학습 시 `class_weight='balanced'` 또는 오버샘플링 고려 필요)
+  - ⚠️ **normal과 low_flow의 RMS 값이 83.7% 겹침** — RMS 단일 지표로는 완전 분리 어려움, Peak·Duty·Peak/RMS 비율(dryrun 1.76 / normal 1.68 / low_flow 1.52 / start_fail 1.97)까지 함께 쓰는 다변량 분류 필요
+  - 6V 저전압 조건은 원래 low_flow였으나 "사실상 정지 상태"로 확인되어 **start_fail로 재분류**
+  - 공회전(dryrun)은 "흡입+토출 배관 모두 제거" 조건만 채택(RMS 75~90mA로 명확히 분리) — "흡입측만 제거" 조건은 low_flow와 값이 겹쳐 학습셋에서 제외
+
 ## 유도등 엣지/
 
 유도등 예비전원(Ni-Cd 단일셀, 1.2V)을 충전시간별(1h/2h/4h/6h/8h)로 완충한 뒤 방전시험을 진행해, 정전 시 법정 유지시간(20분) 충족에 필요한 최소 충전시간과 판정 임계전압을 검증한 데이터입니다.
