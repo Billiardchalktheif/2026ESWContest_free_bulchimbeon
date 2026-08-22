@@ -20,6 +20,7 @@ from pump_performance_test import (  # noqa: E402
     mark_valve_state_manual,
 )
 from judge.regression import EVAC_MIN_DISCHARGE_MIN  # noqa: E402
+from judge.nuisance_baseline import request_demo_trigger  # noqa: E402
 from config import DB_PATH, LOOP_FIXED_OFFSET_OHM, DEMO_MODE, is_node_online  # noqa: E402
 
 app = Flask(__name__)
@@ -321,6 +322,20 @@ def pump_manual_valve_trigger():
         return jsonify({"ok": False, "error": "valve_state는 closed 또는 open만 가능"}), 400
     mark_valve_state_manual(valve_state)
     return jsonify({"ok": True, "valve_state": valve_state})
+
+
+@app.route("/fire_alarm/nuisance_demo_trigger", methods=["POST"])
+def fire_alarm_nuisance_demo_trigger():
+    """
+    자탐2(광전식) 비화재보 판별 시연 모드 — 방법 B(고정 기준점) 시작 요청.
+    이 프로세스(Flask)는 receiver의 인메모리 이력을 갖고 있지 않으므로, "지금
+    눌렸다"는 시각만 파일에 남긴다. 실제 기준점 계산은 receiver 프로세스의
+    server/judge/nuisance_baseline.py:_demo_baseline()이 자신의 이력으로 직접 한다
+    (server/pump_performance_test.py의 determine_valve_state와 동일한 원칙).
+    """
+    node_id = request.form.get("node_id", "fire_zone_photoelectric_01")
+    request_demo_trigger(node_id)
+    return jsonify({"ok": True, "node_id": node_id})
 
 
 if __name__ == "__main__":

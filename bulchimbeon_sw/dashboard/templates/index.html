@@ -66,6 +66,10 @@
       <div class="row">가스농도(raw): {{ c.mq2_raw if c.mq2_raw is not none else "N/A" }} · 습도: {{ "%.0f%%"|format(c.humidity_pct) if c.humidity_pct is not none else "N/A" }}</div>
       <div class="row">비화재보 판별(AI): <b>{{ c.nuisance_predicted_label or "판정 대기" }}</b>
         {% if c.nuisance_confidence is not none %} ({{ "%.1f%%"|format(c.nuisance_confidence * 100) }}){% endif %}</div>
+      <div class="row">
+        <button onclick="triggerNuisanceDemo('{{ c.node_id }}')">자탐2 시연 시작</button>
+        <span id="nuisanceDemoResult-{{ c.node_id }}" style="color:#888"></span>
+      </div>
       {% endif %}
     </div>
     {% else %}
@@ -214,6 +218,21 @@
       .then((r) => r.json())
       .then((data) => {
         resultEl.textContent = data.ok ? `트리거 등록됨: ${data.valve_state}` : `실패: ${data.error}`;
+      })
+      .catch(() => { resultEl.textContent = '요청 실패'; });
+  }
+
+  // 자탐2(광전식) 비화재보 판별 시연 모드 — 방법 B(3분간 고정 기준점) 시작 트리거
+  function triggerNuisanceDemo(nodeId) {
+    const resultEl = document.getElementById('nuisanceDemoResult-' + nodeId);
+    fetch('/fire_alarm/nuisance_demo_trigger', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'node_id=' + encodeURIComponent(nodeId),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        resultEl.textContent = data.ok ? '시연 모드 활성 (3분간)' : `실패: ${data.error}`;
       })
       .catch(() => { resultEl.textContent = '요청 실패'; });
   }

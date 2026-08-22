@@ -83,7 +83,7 @@ def predict_pump_label(rms: float, peak: float, duty_cycle: float):
 # 자탐2(광전식/연기구역) 비화재보 판별
 # ---------------------------------------------------------------------------
 NUISANCE_MODEL_PATH = AI_MODELS_DIR / "nuisance_classifier.joblib"
-NUISANCE_FEATURE_COLS = ["temp_rise_rate", "mq2_raw", "humidity_pct"]
+NUISANCE_FEATURE_COLS = ["temp_rise_rate", "mq2_raw", "humidity_pct", "mq2_to_humidity_ratio"]
 
 _nuisance_model = None
 _nuisance_model_load_attempted = False
@@ -106,20 +106,25 @@ def _get_nuisance_model():
     return _nuisance_model
 
 
-def predict_nuisance_label(temp_rise_rate: float, mq2_raw: float, humidity_pct: float):
+def predict_nuisance_label(temp_rise_rate: float, mq2_raw: float, humidity_pct: float,
+                            mq2_to_humidity_ratio: float):
     """
-    (temp_rise_rate, mq2_raw, humidity_pct) feature로 fire/cooking/normal 추론.
-    셋 중 하나라도 없으면(광전식구역 패킷이 아니거나 값 누락) 추론하지 않는다.
+    (temp_rise_rate, mq2_raw, humidity_pct, mq2_to_humidity_ratio) feature로
+    normal/smoking/incense/heat/fire 추론 (5클래스, ml/train_nuisance_classifier.py와 동일).
+    넷 중 하나라도 없으면 추론하지 않는다.
     반환: (predicted_label, confidence) 또는 모델이 없거나 입력 부족하면 (None, None)
     """
-    if temp_rise_rate is None or mq2_raw is None or humidity_pct is None:
+    if None in (temp_rise_rate, mq2_raw, humidity_pct, mq2_to_humidity_ratio):
         return None, None
     model = _get_nuisance_model()
     if model is None:
         return None, None
     try:
         import pandas as pd
-        X = pd.DataFrame([[temp_rise_rate, mq2_raw, humidity_pct]], columns=NUISANCE_FEATURE_COLS)
+        X = pd.DataFrame(
+            [[temp_rise_rate, mq2_raw, humidity_pct, mq2_to_humidity_ratio]],
+            columns=NUISANCE_FEATURE_COLS,
+        )
         proba = model.predict_proba(X)[0]
         classes = model.classes_
         best_idx = proba.argmax()

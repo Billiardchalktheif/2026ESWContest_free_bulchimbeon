@@ -34,6 +34,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 from judge.classify import handle_nuisance_prediction, predict_nuisance_label, predict_pump_label  # noqa: E402
+from judge.nuisance_baseline import compute_nuisance_features  # noqa: E402
 from judge.regression import (  # noqa: E402
     evaluate_evac_discharge_capacity, evaluate_evac_light, evaluate_loop_resistance, evaluate_gas,
 )
@@ -128,15 +129,24 @@ def handle_packet(conn, pkt: dict):
         # 경우(=학습 데이터 수집이 아니라 실측 운영 데이터)에만 추론을 돌린다.
         # 수계와 동일한 원칙: label이 실려오면 학습용이므로 추론하지 않는다.
         if zone_type == "photoelectric" and label is None:
-            predicted_label, confidence = predict_nuisance_label(
-                pkt.get("temp_rise_rate"), pkt.get("mq2_raw"), pkt.get("humidity_pct")
+            # 원시 순간값을 기준점(이동평균 또는 시연 트리거) 대비 상승률로 변환한 뒤
+            # 추론한다 — 학습 데이터(세션 시작 대비 상승률)와 feature 성격을 맞추기 위함
+            # (server/judge/nuisance_baseline.py 참고). 기준점이 아직 준비 안 됐으면
+            # (운영 시작 직후 5분 이내) features가 None이라 이번 패킷은 판정을 보류한다.
+            features = compute_nuisance_features(
+                node_id, pkt.get("mq2_raw"), pkt.get("humidity_pct"), pkt.get("temp_c"), ts
             )
-            if predicted_label is not None:
-                conn.execute(
-                    "UPDATE fire_alarm_log SET predicted_label=?, confidence=? WHERE id=?",
-                    (predicted_label, confidence, cur.lastrowid),
+            if features is not None:
+                predicted_label, confidence = predict_nuisance_label(
+                    features["temp_rise_rate"], features["mq2_raw"],
+                    features["humidity_pct"], features["mq2_to_humidity_ratio"],
                 )
-                handle_nuisance_prediction(zone, predicted_label, confidence)
+                if predicted_label is not None:
+                    conn.execute(
+                        "UPDATE fire_alarm_log SET predicted_label=?, confidence=? WHERE id=?",
+                        (predicted_label, confidence, cur.lastrowid),
+                    )
+                    handle_nuisance_prediction(zone, predicted_label, confidence)
     elif device == "water_pump":
         label = pkt.get("label")
         pump_type = pkt.get("pump_type")
