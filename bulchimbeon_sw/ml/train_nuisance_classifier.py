@@ -32,7 +32,7 @@ from config import AI_MODELS_DIR, DB_PATH  # noqa: E402
 
 MODEL_PATH = AI_MODELS_DIR / "nuisance_classifier.joblib"
 
-FEATURE_COLS = ["temp_rise_rate", "mq2_raw", "humidity_pct"]
+FEATURE_COLS = ["temp_rise_rate", "mq2_raw", "humidity_pct", "mq2_to_humidity_ratio"]
 
 
 def load_labeled_data() -> pd.DataFrame:
@@ -43,6 +43,14 @@ def load_labeled_data() -> pd.DataFrame:
         conn,
     )
     conn.close()
+    # incense는 "MQ2만 크게 뛰고 습도는 거의 안 움직인다"는 시그니처가 있고,
+    # smoking(연초/전자담배)은 MQ2 상승과 함께 습도도 같이 오른다 — 담배 연기에
+    # 수증기가 섞여 나오기 때문. 단일 feature로는 안 갈리던 이 경계가 "MQ2 상승
+    # 대비 습도 상승 비율"로는 갈릴 가능성이 있어 파생 feature로 추가한다.
+    # humidity_pct가 0에 가까운 세션(특히 incense)에서 0으로 나누는 걸 막기 위해
+    # +1.0을 더한다(epsilon). abs()는 heat/fire처럼 습도가 크게 "하강"하는
+    # 경우에도 비율이 항상 양수로 나오게 하기 위함.
+    df["mq2_to_humidity_ratio"] = df["mq2_raw"] / (df["humidity_pct"].abs() + 1.0)
     return df
 
 
