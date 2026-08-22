@@ -1,0 +1,7 @@
+,rms_mA,rms_mA,rms_mA,rms_mA,rms_mA,peak_mA,peak_mA,peak_mA,peak_mA,peak_mA,duty_cycle,duty_cycle,duty_cycle,duty_cycle,duty_cycle
+,count,mean,std,min,max,count,mean,std,min,max,count,mean,std,min,max
+label,,,,,,,,,,,,,,,
+dryrun,39,81.27,5.54,71.95,101.89,39,142.34,3.02,132.7,147.4,39,0.67,0.06,0.52,0.91
+low_flow,867,182.26,34.45,113.84,245.01,867,278.5,62.36,180.2,392.5,867,0.78,0.04,0.66,0.94
+normal,235,209.85,31.9,139.73,261.37,235,350.71,45.53,270.5,411.7,235,0.71,0.07,0.58,0.96
+start_fail,156,7.27,14.75,0.87,68.69,156,10.84,20.0,1.7,78.3,156,0.72,0.28,0.04,1.0
