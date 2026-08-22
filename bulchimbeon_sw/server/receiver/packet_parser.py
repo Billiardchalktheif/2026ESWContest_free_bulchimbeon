@@ -33,7 +33,7 @@ import time
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
-from judge.classify import handle_nuisance_prediction, predict_nuisance_label, predict_pump_label  # noqa: E402
+from judge.classify import check_cooking_rule, handle_nuisance_prediction, predict_nuisance_label, predict_pump_label  # noqa: E402
 from judge.nuisance_baseline import compute_nuisance_features  # noqa: E402
 from judge.regression import (  # noqa: E402
     evaluate_evac_discharge_capacity, evaluate_evac_light, evaluate_loop_resistance, evaluate_gas,
@@ -137,10 +137,16 @@ def handle_packet(conn, pkt: dict):
                 node_id, pkt.get("mq2_raw"), pkt.get("humidity_pct"), pkt.get("temp_c"), ts
             )
             if features is not None:
-                predicted_label, confidence = predict_nuisance_label(
-                    features["temp_rise_rate"], features["mq2_raw"],
-                    features["humidity_pct"], features["mq2_to_humidity_ratio"],
-                )
+                # 쿠킹(수증기) 규칙판정을 ML 모델보다 먼저 체크한다 — 이 시그니처는
+                # 5클래스 모델이 학습한 적 없는 별도 패턴이라, 걸리면 모델을 부르지
+                # 않고 바로 "cooking"으로 확정한다 (check_cooking_rule 정의부 참고).
+                if check_cooking_rule(features["mq2_raw"], features["humidity_pct"]):
+                    predicted_label, confidence = "cooking", None
+                else:
+                    predicted_label, confidence = predict_nuisance_label(
+                        features["temp_rise_rate"], features["mq2_raw"],
+                        features["humidity_pct"], features["mq2_to_humidity_ratio"],
+                    )
                 if predicted_label is not None:
                     conn.execute(
                         "UPDATE fire_alarm_log SET predicted_label=?, confidence=? WHERE id=?",

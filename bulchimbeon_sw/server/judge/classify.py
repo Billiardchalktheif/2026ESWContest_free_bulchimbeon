@@ -106,6 +106,33 @@ def _get_nuisance_model():
     return _nuisance_model
 
 
+# ---------------------------------------------------------------------------
+# 쿠킹(조리 수증기) 규칙판정 — ML 모델 호출 전에 먼저 걸러낸다
+# ---------------------------------------------------------------------------
+# 근거: data/광전식 엣지/쿠킹(수증기_소중대) 클래스/수증기_소중대_통합_분석_리포트.md
+# 조리 수증기는 "MQ2는 거의 안 뛰는데 습도만 뚜렷하게 오른다"는 독특한 시그니처가 있다
+# (MQ2 변화율 0.15~1.01%, 습도 상승폭 +7.8~27%p, 소/중/대 세기와 무관하게 공통).
+# 습도 상승폭만으로는 부족하다 — smoking(특히 전자담배 근거리)도 습도가 최대
+# +42%p까지 올라 쿠킹의 "대" 등급(25%p)보다 높게 나올 수 있다. MQ2 상승률까지
+# 같이 봐야 smoking(MQ2 7.5~57%로 뚜렷이 반응)과 구분된다.
+COOKING_MQ2_RISE_MAX_PCT = 2.0        # 이하이면 "MQ2 거의 무반응"으로 판단
+COOKING_HUMIDITY_RISE_MIN_PP = 7.0    # 이상이면 "습도 뚜렷한 상승"으로 판단 (수증기 "소" 최저값 7.8%p 기준)
+
+
+def check_cooking_rule(mq2_rise_pct: float, humidity_change_pct: float) -> bool:
+    """
+    두 feature가 모두 쿠킹 시그니처 범위 안에 있으면 True.
+    mq2_rise_pct/humidity_change_pct는 nuisance_baseline.compute_nuisance_features()가
+    돌려주는, 이미 기준점 대비로 변환된 값(mq2_raw/humidity_pct 키)을 그대로 넣는다.
+    """
+    if mq2_rise_pct is None or humidity_change_pct is None:
+        return False
+    return (
+        mq2_rise_pct <= COOKING_MQ2_RISE_MAX_PCT
+        and humidity_change_pct >= COOKING_HUMIDITY_RISE_MIN_PP
+    )
+
+
 def predict_nuisance_label(temp_rise_rate: float, mq2_raw: float, humidity_pct: float,
                             mq2_to_humidity_ratio: float):
     """
