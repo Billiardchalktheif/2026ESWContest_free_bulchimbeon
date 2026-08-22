@@ -54,6 +54,7 @@
 | `fire_alarm_photoelectric_node.ino` | 자탐2 (광전식구역) | ADS1115+MQ-2+DHT22, AI 비화재보 판별 대상 |
 | `pump_node_INA219.ino` | 수계 | INA219(I2C) 기반 — CT클램프는 DC 측정 불가로 폐기, 이 파일이 최신 수정본 |
 | `pump_node_INA219_v7.ino` | 수계 | 유량센서 추가 및 압력센서를 통한 충압펌프 자동 기동 |
+| `pump_node_INA219_v23.ino` | 수계 | 압력센서 임계값 수정 및 주배관 측 압력값 기준으로 충압펌프 및 주펌프 작동 |
 | `gas_node.ino` | 가스계 (CO2) | HX711, NVS 기반 캘리브레이션 저장 |
 | `extinguisher_leafnode.ino` | 소화기 리프노드 ×4 | ESP32-C3, MPU6500+딥슬립, ESP-NOW 송신 |
 | `extinguisher_gateway.ino` | 소화기 게이트웨이 | ESP-NOW 수신 → WiFi/UDP 중계, 상시전원 |
@@ -244,6 +245,7 @@
   - gas_node_v2.ino
   - pump_node_INA219.ino
   - pump_node_INA219_v7.ino
+  - pump_node_INA219_v23.ino
   - *(라즈베리파이 서버 파이썬 코드 추가 예정)*
  
 - `app/`
