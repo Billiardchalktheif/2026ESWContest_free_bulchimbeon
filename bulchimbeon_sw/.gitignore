@@ -3,8 +3,9 @@ __pycache__/
 *.pyc
 
 # 실행 결과물 — 코드가 아니라 런타임 산출물이라 커밋 대상에서 제외.
-# 클론 후 server/storage/db.py -> ml/train_*.py -> ml/evaluate_predictions.py 순으로
-# 실행하면 동일한 상태를 로컬에서 그대로 재현할 수 있다.
+# 클론 후 server/storage/db.py -> simulate/import_photoelectric_labeled_data.py ->
+# ml/train_*.py -> ml/evaluate_predictions.py 순으로 실행하면 동일한 상태를
+# 로컬에서 그대로 재현할 수 있다.
 server/storage/*.db
 server/storage/*.db-journal
 server/judge/ai_models/*.joblib

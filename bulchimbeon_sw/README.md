@@ -69,17 +69,20 @@ python server/main.py
 # 3) 더미 데이터 전송 (터미널 B)
 python simulate/dummy_generator.py --all
 
-# 4) AI 모델 학습 (성능시험/비화재보 라벨 우선) -> server/judge/ai_models/에 저장됨
+# 4) 자탐2 5클래스 실측 데이터(normal/smoking/incense/heat/fire) DB 반영
+python simulate/import_photoelectric_labeled_data.py
+
+# 5) AI 모델 학습 (성능시험/비화재보 라벨 우선) -> server/judge/ai_models/에 저장됨
 python ml/train_pump_classifier.py
 python ml/train_nuisance_classifier.py
 
-# 5) 대시보드 실행 (터미널 C) -> http://localhost:5000
+# 6) 대시보드 실행 (터미널 C) -> http://localhost:5000
 python dashboard/app.py
 
-# 6) 자탐 루프저항 2층 판정 검증
+# 7) 자탐 루프저항 2층 판정 검증
 python simulate/verify_loop_resistance_judgment.py
 
-# 7) 가스계/유도등 회귀 예측 정확도 검증 (개발완료보고서 근거자료)
+# 8) 가스계/유도등 회귀 예측 정확도 검증 (개발완료보고서 근거자료)
 python ml/evaluate_predictions.py
 ```
 
