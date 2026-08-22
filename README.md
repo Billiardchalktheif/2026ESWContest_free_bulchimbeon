@@ -55,12 +55,16 @@
 | `pump_node_INA219.ino` | 수계 | INA219(I2C) 기반 — CT클램프는 DC 측정 불가로 폐기, 이 파일이 최신 수정본 |
 | `pump_node_INA219_v7.ino` | 수계 | 유량센서 추가 및 압력센서를 통한 충압펌프 자동 기동 |
 | `pump_node_INA219_v23.ino` | 수계 | 압력센서 임계값 수정 및 주배관 측 압력값 기준으로 충압펌프 및 주펌프 작동 |
+| `pump_node_INA219_v24.ino` | 수계 | 펌프성능시험 실행 명령어(P) 작동 택트스위치 설치 |
 | `gas_node.ino` | 가스계 (CO2) | HX711, NVS 기반 캘리브레이션 저장 |
+| `gas_node_v2.ino` | 가스계 (CO2) | 캘리브레이션을 통해 실측 중량과 측정 중량 대조 후 무게 상수 대입 |
+| `gas_node_v3.ino` | 가스계 (CO2) | 영점(TARE), 기준중량저장(SET_INITIAL) 실행 명령어 작동 택트스위치 설치 |
 | `extinguisher_leafnode.ino` | 소화기 리프노드 ×4 | ESP32-C3, MPU6500+딥슬립, ESP-NOW 송신 |
 | `extinguisher_gateway.ino` | 소화기 게이트웨이 | ESP-NOW 수신 → WiFi/UDP 중계, 상시전원 |
 | `evac_light_node.ino` | 유도등 | CD74HC4067 멀티플렉서, 데모모드(20분→45초 압축) 포함 |
 | `evac_light_node_v2.ino` | 유도등 | 아날로그 멀티플렉서 및 조도센서 사용 삭제 |
 | `evac_light_node_v3.ino` | 유도등 | 방전시험을 거치며 얻은 결과를 기준으로 수정 |
+| `evac_light_node_v4.ino` | 유도등 | 방전시험(s), 데모시험(d) 실행 명령어 작동 택트스위치 설치 |
 
 *(라즈베리파이 서버 쪽 파이썬 코드는 bulchimbeon_sw에서 정리 예정)*
 
@@ -242,15 +246,18 @@
   - evac_light_node.ino
   - evac_light_node_v2.ino
   - evac_light_node_v3.ino
+  - evac_light_node_v4.ino
   - extinguisher_gateway.ino
   - extinguisher_leafnode.ino
   - fire_alarm_differential_node.ino
   - fire_alarm_photoelectric_node.ino
   - gas_node.ino
   - gas_node_v2.ino
+  - gas_node_v23ino
   - pump_node_INA219.ino
   - pump_node_INA219_v7.ino
   - pump_node_INA219_v23.ino
+  - pump_node_INA219_v24.ino
   - *(라즈베리파이 서버 파이썬 코드 추가 예정)*
  
 - `app/`
