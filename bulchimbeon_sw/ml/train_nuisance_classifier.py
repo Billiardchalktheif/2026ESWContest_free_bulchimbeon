@@ -25,6 +25,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold, cross_val_predict
 
 sys.path.append(str(Path(__file__).parent.parent / "server"))
 from config import AI_MODELS_DIR, DB_PATH  # noqa: E402
@@ -54,6 +55,31 @@ def train():
 
     X = df[FEATURE_COLS]
     y = df["label"]
+
+    # --- 5-fold 교차검증: 모든 표본이 최소 한 번은 테스트로 쓰이도록 함 ---
+    # 표본이 적은 클래스(예: fire 9개)에서도 n_splits=5가 성립하는지 자동 확인.
+    min_class_count = y.value_counts().min()
+    n_splits = min(5, min_class_count)
+    if n_splits < 2:
+        print(f"[경고] 가장 적은 클래스 표본이 {min_class_count}개뿐이라 교차검증 생략")
+    else:
+        skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+        cv_clf = RandomForestClassifier(n_estimators=200, max_depth=6, random_state=42)
+        oof_pred = cross_val_predict(cv_clf, X, y, cv=skf)
+
+        print("=" * 50)
+        print(f"[교차검증 {n_splits}-fold] 전체 {len(y)}개 표본이 전부 한 번씩 테스트됨")
+        print("=" * 50)
+        print("\n[교차검증 분류 리포트]")
+        print(classification_report(y, oof_pred))
+
+        print("[교차검증 혼동 행렬] (행=실제, 열=예측)")
+        cv_labels = sorted(y.unique())
+        cv_cm = confusion_matrix(y, oof_pred, labels=cv_labels)
+        print("     ", "  ".join(f"{l:>9}" for l in cv_labels))
+        for label, row in zip(cv_labels, cv_cm):
+            print(f"{label:>9}", "  ".join(f"{v:>9}" for v in row))
+        print()
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.25, random_state=42, stratify=y
