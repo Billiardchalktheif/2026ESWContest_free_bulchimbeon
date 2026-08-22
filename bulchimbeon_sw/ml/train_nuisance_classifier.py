@@ -111,15 +111,31 @@ def train():
     for label, row in zip(labels, cm):
         print(f"{label:>9}", "  ".join(f"{v:>9}" for v in row))
 
-    print("\n[Feature importance] - 왜 이렇게 판정했는지 설명하는 근거")
+    print("\n[Feature importance] - 왜 이렇게 판정했는지 설명하는 근거 (75% 학습분 기준, 참고용)")
     importances = sorted(zip(FEATURE_COLS, clf.feature_importances_), key=lambda x: -x[1])
     for name, imp in importances:
         bar = "#" * int(imp * 40)
         print(f"  {name:<14} {imp:.3f} {bar}")
 
+    # --- 최종 배포 모델: 홀드아웃 25%까지 포함해 전체 데이터로 재학습 ---
+    # 위 교차검증으로 이미 이 방식의 일반화 성능을 확인했으므로, 실전에 쓰일
+    # 모델은 테스트용으로 떼어뒀던 25%도 마저 포함해서 가진 데이터를 전부
+    # 활용해 만든다. 위 clf(75%)는 평가 참고용으로만 남기고, 저장은 이 모델로 한다.
+    final_clf = RandomForestClassifier(n_estimators=200, max_depth=6, random_state=42)
+    final_clf.fit(X, y)
+
+    print("\n" + "=" * 50)
+    print(f"[최종 모델] 전체 {len(X)}개로 재학습 완료 (위 학습/테스트 평가는 참고용, 이 모델이 실제 저장됨)")
+    print("=" * 50)
+    print("[최종 모델 feature importance]")
+    final_importances = sorted(zip(FEATURE_COLS, final_clf.feature_importances_), key=lambda x: -x[1])
+    for name, imp in final_importances:
+        bar = "#" * int(imp * 40)
+        print(f"  {name:<14} {imp:.3f} {bar}")
+
     MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)  # ai_models/ 디렉터리가 없으면 생성
-    joblib.dump(clf, MODEL_PATH)
-    print(f"\n모델 저장 완료: {MODEL_PATH}")
+    joblib.dump(final_clf, MODEL_PATH)
+    print(f"\n모델 저장 완료: {MODEL_PATH} (전체 {len(X)}개 데이터 기준)")
 
 
 if __name__ == "__main__":
