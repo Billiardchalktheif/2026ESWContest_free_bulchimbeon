@@ -99,7 +99,6 @@
       </div>
       <div class="row">판정 결과: <b>{{ water_pump.main_shown_label or "N/A" }}</b></div>
       <div class="row">confidence: {{ "%.1f%%"|format(water_pump.main.confidence * 100) if water_pump.main.confidence is not none else "N/A" }}</div>
-      <div class="row">rms/peak/duty: {{ "%.3f"|format(water_pump.main.rms) }} / {{ "%.3f"|format(water_pump.main.peak) }} / {{ "%.2f"|format(water_pump.main.duty_cycle) }}</div>
       {% else %}
       <div class="row">데이터 없음</div>
       {% endif %}
