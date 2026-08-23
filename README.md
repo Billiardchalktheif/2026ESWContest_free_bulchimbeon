@@ -2,14 +2,27 @@
 > **점검을 대체하지 않고, 점검 사이를 지킵니다.**
 > 소방설비 법정 점검(연 1~2회) 사이의 상태 열화를 상시 센서로 감시해, 점검 사각지대를 메우는 AIoT 기반 소방설비 상태감시·점검보조 플랫폼입니다.
 
+## 저장소 구조
+
+| 폴더 | 내용 |
+|---|---|
+| `docs/` | 설계·기획 자료 |
+| `guides/` | 실험·조립 가이드 |
+| `server/` | ESP32 펌웨어(.ino) |
+| `bulchimbeon_sw/` | 라즈베리파이 서버(Python: 수신·판정·AI·대시보드) |
+| `app/` | 네이티브 앱(Flutter) |
+| `simulation/` | Wokwi 하드웨어 시뮬레이션 |
+| `data/` | 실물 실험 원시 데이터 (엣지별, 상세는 `data/README.md`) |
+
 ## docs/ — 설계·기획 자료
 불침번 개발과정을 정리한 자료입니다.
 
 - `불침번_하드웨어_조감도_핀배치_v3.pdf` — 전체 시스템 구조도 + 모듈별 핀 배치 (가장 먼저 볼 자료)
+- `불침번_하드웨어_최종기술문서.pdf` — 하드웨어 최종 기술문서
 - `AI_학습_데이터_수집_가이드.md` — AI 학습 시 데이터 수집 방법 초기 구상안
-- `Fail-safe_설계철학_정리.md` — 프로젝트 구성 중 산업적인 측면에서의 정리
+- `Fail-Safe_설계철학_정리.md` — 프로젝트 구성 중 산업적인 측면에서의 정리
 - `소프트웨어_구상안_초안.md` — 서버/AI/판정로직 아키텍처 초안
-- `소프트웨어_구성안_v3.md` — 서버/AI/판정로직 아키텍처 최신안 (실제 코드는 이 기준)
+- `소프트웨어 구성안 v3.md` — 서버/AI/판정로직 아키텍처 최신안 (실제 코드는 이 기준)
 - `개발_장애요인_해결방안_정리.md` — 개발 중 발생한 기술적 문제와 해결 과정 (CT클램프→INA219 교체 등)
 - `네트워크_인프라_장애요인_해결방안_정리.md` — 라즈베리파이 자체 WiFi 핫스팟(BulchimbeonAP) 인프라에서 겪은 문제 정리 (핫스팟 비영속성, ESP32 WPA 협상 실패, RTC 부재로 인한 하트비트 오판정 등)
 - `소화기_게이트웨이_ESP-NOW_WiFi_동시사용_문제_정리.md` — 위 문서의 WPA 협상 문제 해결 후에도 남아있던 소화기 게이트웨이 WiFi 반복 끊김 원인 추적기 (라즈베리파이 AP 모드 `brcmfmac` 드라이버 결함 + ESP32 ESP-NOW/WiFi 단일 라디오 공유 제약, 최종적으로 파이를 외부 공유기 클라이언트 모드로 전환해 해결), 예선(WiFi)/결선(RS-485 유선) 통신 방식 차이 결정 배경
@@ -32,7 +45,7 @@
 
 **시연영상 초기 구성안**: [바로 재생하기](https://billiardchalktheif.github.io/2026ESWContest_free_bulchimbeon/docs/bulchimbeon_animatic.html)
 
-## guide/ — 실험·조립 가이드
+## guides/ — 실험·조립 가이드
 하드웨어 핀 배치 및 각 테스트베드 조립과 실험 방법입니다.
 
 - `테스트베드_조립가이드.md` — 5개 모듈 조립 순서 총정리
@@ -46,15 +59,15 @@
 - `유도등_실험가이드_v2.md` — 유도등 노드의 수정본(조도센서 사용 방안 삭제)
 - `실험_캘리브레이션_데이터축적_통합정리.md` — 6개 엣지 실험을 "캘리브레이션/추세축적/AI학습축적/반복검증" 관점으로 재구성한 통합 인덱스 (무엇을·왜·얼마나 쌓아야 하는지 빠르게 파악용)
 
-## server/ — 실제 동작 코드
-라즈베리파이에서 상시 구동되는 서버(수신·판정·AI·대시보드)와, 각 모듈의 ESP32에 올라가는 펌웨어(.ino)입니다.
+## server/ — ESP32 펌웨어
+각 모듈의 ESP32에 올라가는 펌웨어(.ino)입니다. 라즈베리파이에서 상시 구동되는 수신·판정·AI·대시보드 서버는 아래 `bulchimbeon_sw/` 섹션 참고.
 
 | 파일 | 담당 모듈 | 비고 |
 |---|---|---|
 | `fire_alarm_differential_node.ino` | 자탐1 (차동식구역) | ADS1115+TS0202, 온도상승률 계산, 배선 열화 감지 |
 | `fire_alarm_differential_node_v5.ino` | 자탐1 (차동식구역) | 점검모드 신설 및 작동 택트스위치 설치 |
 | `fire_alarm_photoelectric_node.ino` | 자탐2 (광전식구역) | ADS1115+MQ-2+DHT22, AI 비화재보 판별 대상, 배선 열화 감지 |
-| `fire_alarm_photoelectric_node_v2.ino` | 자탐2 (광전식구역) |  | 점검모드 신설 및 작동 택트스위치 설치 |
+| `fire_alarm_photoelectric_node_v2.ino` | 자탐2 (광전식구역) | 점검모드 신설 및 작동 택트스위치 설치 |
 | `pump_node_INA219.ino` | 수계 | INA219(I2C) 기반 — CT클램프는 DC 측정 불가로 폐기, 이 파일이 최신 수정본 |
 | `pump_node_INA219_v7.ino` | 수계 | 유량센서 추가 및 압력센서를 통한 충압펌프 자동 기동 |
 | `pump_node_INA219_v23.ino` | 수계 | 압력센서 임계값 수정 및 주배관 측 압력값 기준으로 충압펌프 및 주펌프 작동 |
@@ -70,8 +83,14 @@
 | `evac_light_node_v3.ino` | 유도등 | 방전시험을 거치며 얻은 결과를 기준으로 수정 |
 | `evac_light_node_v4.ino` | 유도등 | 방전시험(s), 데모시험(d) 실행 명령어 작동 택트스위치 설치 |
 
-*(라즈베리파이 서버 쪽 파이썬 코드는 bulchimbeon_sw에서 정리 예정)*
+## bulchimbeon_sw/ — 라즈베리파이 서버 소프트웨어 (Python)
+UDP 수신 → SQLite 저장 → 규칙/회귀/AI 3계층 판정 → 부저·LCD·대시보드 출력까지, 라즈베리파이에서 상시 구동되는 서버 전체입니다. AI는 정확히 2곳(수계 주펌프 파형 분류, 자탐2 비화재보 판별)에만 쓰고 나머지 설비(자탐1/가스계/유도등/소화기)는 전부 통계·규칙 기반입니다. 구조·실행 순서·설계 결정 배경은 `bulchimbeon_sw/README.md`에 자세히 정리되어 있습니다.
 
+- `server/` — `main.py`(실행 진입점), `receiver/`(UDP 수신), `storage/`(SQLite 스키마·마이그레이션), `judge/`(규칙·회귀·AI 판정 로직), `dispatch/`(부저+LCD 출력)
+- `ml/` — 수계 파형 분류기·자탐2 비화재보 판별기 학습 스크립트, 예측 정확도(MAE) 검증
+- `dashboard/` — Flask 대시보드(`app.py`) + 템플릿
+- `simulate/` — 더미 데이터 생성기, 실측 라벨 데이터 DB 반영 스크립트, 판정 로직 검증 스크립트
+- `requirements.txt` — Python 의존성
 
 ## app/ — 네이티브 앱(Flutter) 개발
 안드로이드 기준 네이티브 앱. 대시보드 외 알림/QR조회/PDF리포트 등 출력 채널을 담당합니다.
@@ -80,6 +99,9 @@
 - `네이티브앱_개발가이드.md` — 화면 구성, API 연동 목록(`/api/status` 등), 기능별 구현 순서 정리
 - `처음부터_시작하기_Windows.md` — Flutter 개발환경 설치 가이드 (Windows)
 - `네이티브앱_고급기능_가이드.md` — QR스캔·PDF리포트 등 고급 기능 구현 가이드
+- `QR코드_생성_가이드.md` — QR코드에는 짧은 식별자(예: `EXT-01`)만 넣고 앱이 스캔 후 서버(`/api/equipment/<코드>`)에 조회하는 A방식 생성 가이드
+- `라즈베리파이_연동_가이드.md` — Flutter 앱을 라즈베리파이 서버(`api.py`, 5001포트)와 연동하는 단계별(STEP 0~) 실행 가이드
+- `raspberry_pi_integration_plan.md` — 라즈베리파이·QR코드 연동 개발 마일스톤(단계별 작업 계획서)
 - `앱개발_과정.md` - Flutter를 이용한 앱 개발 및 코드 (틀 완성 + QR스캔·PDF리포트 기능 완료, 서버 연동 대기 중)
 
 ## simulation/ — 하드웨어 시뮬레이션 (Wokwi)
@@ -164,7 +186,7 @@
                          실물 데이터 수집 후 자탐2 AI(비화재보 판별) 학습 단계에서 검증 예정), WiFi/UDP 실제 전송(시뮬레이터는 가상 네트워크라 서버로 실제 도달하지 않음).
 
 - **라즈베리파이 서버 — MOCK_MODE 소프트웨어 검증**
-  - 소스: `docs/라즈베리파이_검증_로그.md`
+  - 소스: `simulation/라즈베리파이 검증 로그.md`
   - **참고**: 위 항목들(가스계~유도등)은 Wokwi를 이용한 **하드웨어 회로 시뮬레이션**이고, 이 항목은 실물 라즈베리파이 도착 전 **서버 소프트웨어(수신·판정·AI·대시보드) 자체를 노트북에서 미리 실행·검증**한 기록입니다.
   - **검증 내용**: DB 초기화 → UDP 수신 서버 실행 → 더미데이터(9개 시나리오) 전송 → AI 모델 2종 학습(수계 펌프분류, 자탐2 비화재보판별) → 대시보드 실행 → 자탐 z-score 판정 로직 별도 검증 → 가스계/유도등 회귀예측 정확도(MAE) 산출
   - **확인된 것**: 판정 로직(규칙·회귀·AI 3계층) 정상 작동, 밸브상태 서버추정 로직 정상 작동, 자탐 오탐억제·열화감지 전이 정상 작동
@@ -173,151 +195,15 @@
   - 정량지표(보고서 활용 가능): 가스계 예측 MAE 0.77일(오차율 6.7%), 유도등 예측 MAE 0.62일(오차율 2.2%)
 ---
 
-## 폴더 구조
+## data/ — 실물 실험 데이터
+6개 엣지 중 지금까지 진행된 실험 데이터입니다. 파일별 컬럼 설명과 분석 결과는 `data/README.md`에 정리되어 있습니다.
 
-- `data/` — 실물 실험 원시 데이터 (엣지·클래스별, 상세 설명은 `data/README.md` 참고)
-  - `광전식 엣지/` — **실험 완료(최종본)**
-    - photoelectric_all_classes_combined.csv — normal/smoking/incense/heat/fire 5클래스 64세션 통합 메인 학습 파일
-    - 자탐2_광전식_최종분석보고서.md — 5클래스 최종 통합 분석 리포트
-    - `노말(정상상태) 클래스/`
-      - normal_plateau_reference.csv
-      - normal_raw_timeseries.csv
-      - normal_session_summary.csv
-    - `쿠킹(수증기_소중대) 클래스/` — 별도 습도 임계값 판별용(5클래스 통합 분석에는 미포함)
-      - vapor_raw_data_소.csv / vapor_raw_data_중.csv / vapor_raw_data_대.csv
-      - vapor_summary_소.csv / vapor_summary_중.csv / vapor_summary_대.csv
-      - 수증기_소중대_통합_분석_리포트.md — 소/중/대 세기별 통합 비교 분석
-    - `스모킹(연초_전자담배) 클래스/`
-      - ecig_raw_timeseries.csv / ecig_session_summary.csv
-      - tobacco_raw_timeseries.csv / tobacco_session_summary.csv / tobacco_delta_reference.csv
-      - smoking_class_combined.csv
-      - 스모킹_클래스_분석보고서.md — 연초·전자담배 통합 비교 분석
-    - `화재(열원_연기) 클래스/` — incense(연기 단독)·heat(열원 단독)·fire(연기+열원=화재모의) 3종 하위 실험
-      - incense_raw_timeseries.csv / incense_session_summary.csv
-      - heat_raw_timeseries.csv / heat_session_summary.csv
-      - fire_raw_timeseries.csv / fire_session_summary.csv
-  - `차동식 엣지/`
-    - 01_no_response_15min_actual_temp.csv / _serial_log.csv — 무반응시험
-    - 02_non_operation_15min_trial1_actual_temp.csv / _serial_log.csv — 부작동시험 1회(방법론 부적합, 참고용)
-    - 03_non_operation_15min_trial2_actual_temp.csv / _serial_log.csv — 부작동시험 2회(물리조건 충족)
-    - 04_operation_2min_trial1_actual_temp.csv / _serial_log.csv — 작동시험 1회
-    - 05_operation_2min_trial2_actual_temp.csv / _serial_log.csv — 작동시험 2회(캘리브레이션 최종 채택)
-    - 차동식_실험보고서.md — 최종 확정값(TEMP_RAW_PER_C=-139.0 등) 및 회귀분석 리포트
-  - `가스계 엣지/`
-    - gas_node_log.csv — 로드셀 원본 로그(817포인트, 5분 간격)
-    - gas_regression_chart.png — 회귀검증 차트
-    - 가스계_캘리브레이션_결과_정리.md — 캘리브레이션 확정값(87.9)·온도 드리프트 이슈·10% 손실 임계값 예측 오차(~49분) 정리
-  - `수계 엣지/`
-    - combined_all_labeled.csv — 충압펌프 정상/유량저하/공회전/기동실패 4클래스 통합 학습셋(1,297샘플)
-    - summary_by_class.csv — 클래스별 RMS/Peak/Duty 통계 피벗
-    - summary.md — 채집 방식·클래스별 특징 요약
-    - 충압펌프_전류파형_분석_보고서.md — normal↔low_flow RMS 83.7% 중첩 등 분석 결과 및 다변량 분류 필요성 정리
-  - `유도등 엣지/`
-    - evac_discharge_1h_charged.csv / _2h_ / _4h_ / _6h_ / _8h_charged.csv
-    - evac_discharge_summary.csv
-    - 유도등_방전시험_통합_분석_리포트.md — 충전시간별 방전 특성 통합 분석
-
-- `docs/`
-  - AI_학습_데이터_수집_가이드.md
-  - Fail-safe_설계철학_정리.md
-  - bulchimbeon_animatic.html
-  - 개발_장애요인_해결방안_정리.md
-  - 개발_체크리스트.md
-  - 발전가능성_확장방안_정리_v2.md
-  - 불침번_팀원용_이해자료_최종.md
-  - 불침번_잔여작업_체크리스트.md
-  - 불침번_하드웨어_조감도_핀배치_v3.pdf
-  - 소프트웨어_구상안_초안.md
-  - 소프트웨어_구성안_v3.md
-  - 앱_통합_아이디어_초안.md (폐기)
-  - 유도등_변경사항_정리.md
-  - 유도등_실물실험_기록.md
-  - 수계_유량센서_추가_변경사항_정리.md
-  - 라즈베리파이_소프트웨어_검증_가이드.md
-  - 라즈베리파이_초기세팅_가이드.md
-  - 자탐_유도등_열화감지_회로구성.md
-  - 자탐1(차동식)_실물실험_기록.md
-  - 자탐2(광전식)_실물실험_기록.md
-  - 자탐1_루프저항_2층판정_재조정_정리.md
-  - 자탐1_온도상승률_판정로직 및 점검모드신설_소프트웨어_인수인계.md
-  - 소화기_게이트웨이_ESP-NOW_WiFi_동시사용_문제_정리.md
-
-- `guide/`
-  - 테스트베드_조립가이드.md
-  - 자탐_실험가이드.md
-  - 수계_실험가이드.md
-  - 수계_배관구조_최종가이드.md
-  - 수계_통합가이드_최종.md
-  - 가스계_실험가이드.md
-  - 소화기_실험가이드.md
-  - 유도등_실험가이드.md
-  - 유도등_실험가이드_v2.md
-  - 실험_캘리브레이션_데이터축적_통합정리.md
-
-- `server/`
-  - evac_light_node.ino
-  - evac_light_node_v2.ino
-  - evac_light_node_v3.ino
-  - evac_light_node_v4.ino
-  - extinguisher_gateway.ino
-  - extinguisher_gateway_v2.ino
-  - extinguisher_leafnode.ino
-  - fire_alarm_differential_node.ino
-  - fire_alarm_differential_node_v5.ino
-  - fire_alarm_photoelectric_node.ino
-  - fire_alarm_photoelectric_node_v2.ino
-  - gas_node.ino
-  - gas_node_v2.ino
-  - gas_node_v23ino
-  - pump_node_INA219.ino
-  - pump_node_INA219_v7.ino
-  - pump_node_INA219_v23.ino
-  - pump_node_INA219_v24.ino
-  - *(라즈베리파이 서버 파이썬 코드 추가 예정)*
- 
-- `app/`
-  - 네이티브앱_쉬운설명.md
-  - 네이티브앱_개발가이드.md
-  - 처음부터_시작하기_Windows.md
-  - 네이티브앱_고급기능_가이드.md
-  - 앱개발_과정.md
-
-- `simulation/`
-  - 가스계_wokwi/
-    - sketch.ino
-    - diagram.json
-    - libraries.txt
-    - wokwi-project.txt
-   
-  - 소화기_wokwi/
-    - sketch.ino
-    - diagram.json
-    - libraries.txt
-    - wokwi-project.txt
-   
-  - 수계_wokwi/
-    - sketch.ino
-    - diagram.json
-    - libraries.txt
-    - wokwi-project.txt
-
-  - 유도등_wokwi/
-    - sketch.ino
-    - diagram.json
-    - libraries.txt
-    - wokwi-project.txt
-   
-  - 자탐1(차동식)_wokwi/
-    - sketch.ino
-    - diagram.json
-    - libraries.txt
-    - wokwi-project.txt
-   
-  - 자탐2(광전식)_wokwi/
-    - sketch.ino
-    - diagram.json
-    - libraries.txt
-    - wokwi-project.txt
-   
-  - 라즈베리파이 검증 로그.md
+| 엣지 | 상태 | 요약 |
+|---|---|---|
+| 광전식 | ✅ 실험 완료(최종본) | normal/smoking/incense/heat/fire 5클래스 64세션 통합 + 최종분석보고서 |
+| 차동식 | 실험 5종 완료 | 온도 상승률 판정 임계값 확정(캘리브레이션 상수 포함) |
+| 가스계 | 캘리브레이션 완료 | 로드셀 무게손실 회귀검증(3.85일 로그) |
+| 수계 | 채집 완료 | 충압펌프 4클래스(정상/유량저하/공회전/기동실패) 분류용 데이터 |
+| 유도등 | 실험 완료 | 충전시간별(1h~8h) 방전시험 |
+| 소화기 | 데이터 없음 | 아직 실험 데이터 미수집 |
 
