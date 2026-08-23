@@ -242,7 +242,6 @@
 
   const hqCtx = document.getElementById('pumpHQChart');
   const measuredPoints = {{ water_pump.performance_test.measured_points | tojson }};
-  const extrapolationLine = {{ water_pump.performance_test.extrapolation_line | tojson }};
   const ratedReference = {{ water_pump.performance_test.rated_reference | tojson }};
   new Chart(hqCtx, {
     type: 'scatter',
@@ -258,19 +257,7 @@
           tension: 0.2
         },
         {
-          // 점선 — 실측이 아니라 마지막 실측점 이후 추세를 선형 외삽한 추정선.
-          // 색/스타일을 실측값과 확실히 다르게 해서 혼동을 막는다.
-          label: '추정 연장선(미측정)',
-          data: extrapolationLine,
-          showLine: true,
-          borderColor: '#d9362e',
-          backgroundColor: '#d9362e',
-          borderDash: [6, 4],
-          pointRadius: extrapolationLine.length ? [0, 5] : 0,
-          tension: 0
-        },
-        {
-          // 실측/외삽 선과 연결하지 않는 독립 마커 — "목표는 여기인데 못 갔다"를 보여줌
+          // 실측 곡선과 연결하지 않는 독립 마커 — "목표는 여기인데 못 갔다"를 보여줌
           label: '정격운전점(목표, 미도달)',
           data: [ratedReference],
           showLine: false,
@@ -291,7 +278,9 @@
         }
       },
       scales: {
-        x: { title: { display: true, text: 'Q (유량, L/min)' }, beginAtZero: true },
+        // 정격운전점(150% 지점=RATED_FLOW_LPM*1.5)보다 넉넉하게 X축을 고정 —
+        // 데이터가 적을 때도 목표 구간이 항상 보이도록 자동 축소를 막는다.
+        x: { title: { display: true, text: 'Q (유량, L/min)' }, beginAtZero: true, max: ratedReference.x * 2 },
         y: { title: { display: true, text: 'H (양정, kPa)' }, beginAtZero: true }
       }
     }
