@@ -82,10 +82,15 @@ CREATE TABLE IF NOT EXISTS water_pump_log (
                                           -- performance_test를 우선한다
     predicted_label TEXT,                -- 모델 추론 결과 (AI, 상시)
     confidence REAL,
-    valve_state TEXT,                    -- 'closed'(체절) / 'open'(부하) / 'dryrun'(공회전 시뮬레이션)
-                                          -- / NULL(평상시 모니터링, 성능시험 아님)
+    valve_state TEXT,                    -- 2026-08-23부터 4단계 체계: 'shutoff'(체절) /
+                                          -- 'rated_100pct'(정격) / 'overload_150pct'(과부하) /
+                                          -- 'transition'(구간 사이 이동 중) / 'dryrun'(공회전) /
+                                          -- NULL(평상시 모니터링, 성능시험 아님). 옛 'closed'/'open'
+                                          -- 값은 과거 데이터에만 남아있고 새 패킷에선 더 안 옴.
     pressure_kpa REAL,                   -- 성능시험 중 압력센서 실측값 (평상시엔 NULL)
-    rated_pressure_pct REAL              -- 정격토출압력 대비 백분율 — 140%(체절)/65%(부하) 기준과 비교
+    rated_pressure_pct REAL,             -- 정격토출압력 대비 백분율 — 140%(체절)/65%(과부하) 기준과 비교
+    flow_lpm REAL                        -- 성능시험 중 유량센서 실측값(L/min, 평상시엔 NULL) —
+                                          -- ESP32가 이 값으로 valve_state를 직접 분류해서 같이 보냄
 );
 
 -- v7 버그수정: 손실률은 총중량이 아니라 "약제중량"(총중량 - 공병중량) 기준으로 계산해야

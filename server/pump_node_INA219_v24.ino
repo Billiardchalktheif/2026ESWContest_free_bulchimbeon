@@ -385,6 +385,10 @@ void sendMainPumpPacket(float rms, float peak, float duty, float pressureKpa,
   // label 필드는 이 노드에서 보내지 않는다 — 성능시험 정답 라벨은 서버가
   // 압력값으로 추정한 valve_state를 보고 직접 채운다(§5 결합안 핵심).
 
+  if (doc.overflowed()) {
+    Serial.println("⚠️ JSON 버퍼 부족(main)! StaticJsonDocument/buf 크기를 늘려야 함");
+  }
+
   char buf[256];
   size_t len = serializeJson(doc, buf, sizeof(buf));
   udp.beginPacket(SERVER_IP, SERVER_PORT);
@@ -498,6 +502,13 @@ void sendJockeyEventPacket(double intervalSec, float rms, float peak, float duty
   doc["actual_running"] = actualRunning;  // false면 "명령은 줬는데 전류가 안 흐름" = 기동실패 의심
   doc["header_pressure_kpa"] = headerPressureKpa;
 
+  // ArduinoJson v6는 용량이 부족해도 에러 없이 필드를 조용히 자르거나 누락시킨다 —
+  // 방금 발견한 NTP 타이밍 버그처럼 필드값이 예상보다 훨씬 커지는 경우를 조기에
+  // 잡기 위한 안전장치(2026-08-23 추가).
+  if (doc.overflowed()) {
+    Serial.println("⚠️ JSON 버퍼 부족(jockey)! StaticJsonDocument/buf 크기를 늘려야 함");
+  }
+
   char buf[256];
   size_t len = serializeJson(doc, buf, sizeof(buf));
   udp.beginPacket(SERVER_IP, SERVER_PORT);
@@ -529,8 +540,15 @@ void controlAutoPumps() {
     jockeyRunning = true;
 
     double nowEpoch = getEpochSeconds();
-    double intervalSec = (jockeyLastStartEpoch > 0) ? (nowEpoch - jockeyLastStartEpoch) : -1;
-    jockeyLastStartEpoch = nowEpoch;
+    // NTP 미동기화 시각(millis() 기반, NTP_SYNCED_THRESHOLD 미만)이 jockeyLastStartEpoch에
+    // 한 번이라도 저장되면, 나중에 NTP 동기화된 진짜 에폭값과 빼는 순간 결과가 거의
+    // 에폭타임스탬프 규모(17억대)로 폭주해서 JSON이 256바이트 버퍼를 넘겨버린다 —
+    // 실측 로그로 확인된 버그(2026-08-23). NTP 동기화된 값끼리만 비교하도록 가드.
+    double intervalSec = (jockeyLastStartEpoch >= NTP_SYNCED_THRESHOLD)
+        ? (nowEpoch - jockeyLastStartEpoch) : -1;
+    if (nowEpoch >= NTP_SYNCED_THRESHOLD) {
+      jockeyLastStartEpoch = nowEpoch;  // NTP 동기화된 값만 다음 간격계산의 기준으로 채택
+    }
 
     sampleCurrentWaveform(inaJockey);
     float rms = computeRMS();
@@ -571,7 +589,8 @@ void controlAutoPumps() {
     digitalWrite(RELAY_JOCKEY_PIN, RELAY_OFF);
     jockeyRunning = false;
 
-    double runDurationSec = (jockeyLastStartEpoch > 0) ? (getEpochSeconds() - jockeyLastStartEpoch) : -1;
+    double runDurationSec = (jockeyLastStartEpoch >= NTP_SYNCED_THRESHOLD)
+        ? (getEpochSeconds() - jockeyLastStartEpoch) : -1;
     Serial.print("[충압펌프 정지] 헤더압력:"); Serial.print(headerPressure);
     Serial.print("kPa (회복완료, 이번 가동시간 약 "); Serial.print(runDurationSec);
     Serial.println("초)");

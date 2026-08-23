@@ -145,13 +145,17 @@ def _get_performance_test_summary(conn):
     같은 행(row)에 함께 채워진 가장 최근 성능시험 표본을 비교해서 만든다 — 두 판정이
     실패시 서로 대체하는 관계가 아니라 접점에서만 대조하는 관계임을 그대로 반영한다.
     """
+    # 2026-08-23: ESP32가 이제 'shutoff'/'overload_150pct'로 보낸다(구 'closed'/'open').
+    # 과거 데이터 호환을 위해 두 값 다 조회 대상에 포함한다.
     closed = conn.execute(
         """SELECT ts, pressure_kpa, rated_pressure_pct FROM water_pump_log
-           WHERE pump_type='main' AND valve_state='closed' ORDER BY id DESC LIMIT 1"""
+           WHERE pump_type='main' AND valve_state IN ('shutoff', 'closed')
+           ORDER BY id DESC LIMIT 1"""
     ).fetchone()
     open_ = conn.execute(
         """SELECT ts, pressure_kpa, rated_pressure_pct FROM water_pump_log
-           WHERE pump_type='main' AND valve_state='open' ORDER BY id DESC LIMIT 1"""
+           WHERE pump_type='main' AND valve_state IN ('overload_150pct', 'open')
+           ORDER BY id DESC LIMIT 1"""
     ).fetchone()
     match_row = conn.execute(
         """SELECT label, predicted_label FROM water_pump_log
@@ -175,9 +179,9 @@ def _get_performance_test_summary(conn):
 
     return {
         "closed": dict(closed) if closed else None,
-        "closed_result": classify_performance_result("closed", closed["rated_pressure_pct"]) if closed else None,
+        "closed_result": classify_performance_result("shutoff", closed["rated_pressure_pct"]) if closed else None,
         "open": dict(open_) if open_ else None,
-        "open_result": classify_performance_result("open", open_["rated_pressure_pct"]) if open_ else None,
+        "open_result": classify_performance_result("overload_150pct", open_["rated_pressure_pct"]) if open_ else None,
         "ai_match": (match_row["label"] == match_row["predicted_label"]) if match_row else None,
         "last_test_days_ago": last_test_freshness_days(conn),
         "environment_desc": describe_environment(),
@@ -348,8 +352,8 @@ def pump_manual_valve_trigger():
     (server/pump_performance_test.py의 determine_valve_state 참고).
     """
     valve_state = request.form.get("valve_state")
-    if valve_state not in ("closed", "open"):
-        return jsonify({"ok": False, "error": "valve_state는 closed 또는 open만 가능"}), 400
+    if valve_state not in ("shutoff", "overload_150pct"):
+        return jsonify({"ok": False, "error": "valve_state는 shutoff 또는 overload_150pct만 가능"}), 400
     mark_valve_state_manual(valve_state)
     return jsonify({"ok": True, "valve_state": valve_state})
 

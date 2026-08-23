@@ -184,13 +184,13 @@ def handle_packet(conn, pkt: dict):
         cur = conn.execute(
             """INSERT INTO water_pump_log
                (ts, node_id, pump_type, cycle_interval_sec, rms, peak, duty_cycle,
-                label, label_source, valve_state, pressure_kpa)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                label, label_source, valve_state, pressure_kpa, flow_lpm)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 ts, node_id, pump_type,
                 pkt.get("cycle_interval_sec"), pkt.get("rms"),
                 pkt.get("peak"), pkt.get("duty_cycle"), label, label_source,
-                explicit_valve_state, pressure_kpa,
+                explicit_valve_state, pressure_kpa, pkt.get("flow_lpm"),
             ),
         )
 

@@ -72,17 +72,21 @@ def describe_environment() -> str:
 
 
 # ---- 법정기준(§4) — 매직넘버 금지, 실측 후 조정 가능하게 상수로 분리 ----
-# 2026-08-23 실측 반영 — 축소모델(B안): 정격유량 4L/min은 이 테스트베드 펌프의 물리적
-# 한계를 넘는 사양값이라 실측 기반으로 재정의했다. 체절시험 실측압력 74.37kPa를
-# "140% 지점", 실측 최대유량 1.87L/min(전류/압력 안정화 이후 반복 관측된 값)을
-# "150% 지점"으로 놓고 역산: RATED_PRESSURE_KPA=74.37/1.4, RATED_FLOW_LPM=1.87/1.5.
-# CHOKED_PRESSURE_LIMIT_PCT/LOAD_PRESSURE_MIN_PCT(140%/65%, 법정 퍼센트 기준)는 불변 —
-# 바뀌는 건 그 퍼센트의 분모가 되는 100%(정격) 값뿐이다.
-# ⚠️ 소수점 2자리(53.12)로 반올림하면 기준값을 만든 원본 측정치(74.37kPa)를 그대로
-# 다시 넣어도 74.37/53.12*100=140.0038%로 140%를 넘어 "경보"가 뜨는 반올림 오차가
-# 있었다(2026-08-23 발견) — 6자리로 늘려 이 문제를 없앴다.
-RATED_PRESSURE_KPA = 53.121429     # 실측 기반 역산값(위 계산 참고) — 축소모델 전용, 법정 절대기준 아님
-RATED_FLOW_LPM = 1.246667          # 실측 기반 역산값(위 계산 참고) — 축소모델 전용, 법정 절대기준 아님
+# 2026-08-23 최종 결정 — 실측 기반 잠정치(B안, RATED_PRESSURE_KPA=53.12 등)를 폐기하고
+# 이론값(펌프 사양)으로 되돌린다. 이유: 체절압력 실측치(74.37kPa)가 밸브 구경 문제로
+# 부풀려졌을 가능성이 있는데, 체절은 유량=0이라 밸브 구경과 무관하게 펌프 고유
+# 특성이 나와야 하는 구간이라 밸브 교체로도 안 고쳐질 수 있다(=센서 쪽 문제일 가능성).
+# 그래서 "지금 이 축소모델에 맞춰 기준을 낮춰서 합격시키는" 방식 대신, 펌프 사양(최대
+# 양정 3m)으로 계산한 정직한 이론값을 쓰기로 했다 — 지금 하드웨어로는 이 기준을
+# 통과 못 할 가능성이 높다는 걸 알고도, "실패를 정직하게 보여주는" 쪽을 선택한 것.
+# RATED_PRESSURE_KPA = 1000(물 밀도) × 9.8(중력가속도) × 3(펌프 최대양정 m) / 1000 = 29.4kPa
+RATED_PRESSURE_KPA = 29.4          # 이론 정격토출압력(양정 3m 기준) — 법정 절대기준 아니고 펌프 사양값
+RATED_FLOW_LPM = 4.0               # 이론 정격유량(펌프 사양값) — 펌웨어 determineTestPoint()의
+                                    # RATED_FLOW_LPM(pump_node_INA219_v24.ino, 라인 744)과 반드시
+                                    # 같은 값 유지할 것. 실측 최대유량(1.87L/min)엔 크게 못 미쳐서
+                                    # rated_100pct/overload_150pct 구간엔 사실상 도달 못 하지만,
+                                    # 이번 결정(이론값 유지)에서는 그래도 되는 것으로 확인됨 —
+                                    # shutoff(체절) 하나만 정상 분류되면 판정 결과는 나온다.
 CHOKED_PRESSURE_LIMIT_PCT = 140.0  # 체절운전: 정격토출압력의 140% 이하가 정상 (법정기준, 불변)
 LOAD_PRESSURE_MIN_PCT = 65.0       # 정격토출량 150% 운전: 정격토출압력의 65% 이상이 정상 (법정기준, 불변)
 
@@ -97,9 +101,17 @@ LOAD_PRESSURE_MIN_PCT = 65.0       # 정격토출량 150% 운전: 정격토출�
 # 그때 새 valve_state 키와 함께 채워질 자리로 비워둔다. RandomForest는 클래스 수에 자동
 # 대응되므로(ml/train_pump_classifier.py 참고) 그 시점에 이 dict만 확장하면 된다.
 VALVE_STATE_TO_LABEL = {
-    "closed": "stall_operation",   # 체절운전 — 밸브 완전잠금 상태
-    "open": "normal_operation",    # 정상운전
-    "dryrun": "dry_run",           # 공회전
+    # 2026-08-23부터 ESP32가 flow_lpm 기준으로 4단계 valve_state를 직접 보낸다
+    # (determineTestPoint(), pump_node_INA219_v24.ino) — 옛 closed/open은 그 이전
+    # 방식(서버가 압력 패턴으로 추정)의 흔적으로, 과거 데이터 호환을 위해 남겨둔다.
+    "shutoff": "stall_operation",        # 체절운전 — 밸브 완전잠금 상태 (구 'closed')
+    "rated_100pct": "normal_operation",  # 정격운전
+    "overload_150pct": "normal_operation",  # 과부하(150%) 운전 — 구 'open'과 동일 취급
+    "closed": "stall_operation",         # [구버전 호환] 체절운전
+    "open": "normal_operation",          # [구버전 호환] 정상운전
+    "dryrun": "dry_run",                 # 공회전
+    # transition은 의도적으로 매핑 없음 — 밸브 조작 중이라 아직 유효한 시험 상태가
+    # 아니므로 라벨을 붙이지 않는다(VALVE_STATE_TO_LABEL.get()이 자연히 None 반환).
 }
 
 # ---- v4 §5-1: 압력값 기반 밸브 상태 자동추정 (권장안) ----
@@ -122,15 +134,17 @@ MANUAL_TRIGGER_FRESHNESS_SEC = 120  # 이 시간 안에 들어온 다음 패킷�
 
 def classify_performance_result(valve_state, rated_pressure_pct):
     """
-    체절/부하 각각 다른 법정기준(§4)과 비교해 통과/경보 문자열을 반환한다.
+    체절/과부하 각각 다른 법정기준(§4)과 비교해 통과/경보 문자열을 반환한다.
     대시보드가 그대로 재사용할 수 있도록 여기 한 곳에만 판정 로직을 둔다.
-    dryrun 등 압력 기준이 없는 상태거나 압력값이 없으면 None.
+    dryrun/transition/rated_100pct 등 압력 기준이 없는 상태거나 압력값이 없으면 None
+    — rated_100pct(정격운전점)는 원래부터 통과/경보 판정 대상이 아니라 참고 표시용
+    고정 지점이다(§4 H-Q 곡선 설계 참고).
     """
     if rated_pressure_pct is None:
         return None
-    if valve_state == "closed":
+    if valve_state in ("shutoff", "closed"):  # 'closed'는 구버전 호환
         return "경보(140% 초과)" if rated_pressure_pct > CHOKED_PRESSURE_LIMIT_PCT else "통과"
-    if valve_state == "open":
+    if valve_state in ("overload_150pct", "open"):  # 'open'은 구버전 호환
         return "경보(65% 미만)" if rated_pressure_pct < LOAD_PRESSURE_MIN_PCT else "통과"
     return None
 
