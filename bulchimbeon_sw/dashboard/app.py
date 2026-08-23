@@ -137,6 +137,53 @@ def get_fire_alarm_cards(conn, heartbeats):
     return cards
 
 
+def _get_latest_performance_test_points(conn, limit=50):
+    """
+    가장 최근 성능시험 세션의 실측점(유량/압력)을 시간 오름차순으로 반환한다.
+    주펌프는 PERF_RUNNING 상태일 때만 패킷을 보낸다(pump_node_INA219_v24.ino v21
+    이후 — perfState != PERF_RUNNING이면 return, "평상시엔 [헤더] 로그만 남는다"
+    주석 참고). 시험 간 간격이 테스트베드 기준 6시간이라, 최근 main 행 limit개는
+    항상 "가장 최근 시험 세션 하나"에만 속한다 — 별도 세션 경계 판정 로직 불필요.
+    """
+    rows = conn.execute(
+        """SELECT ts, flow_lpm, pressure_kpa FROM water_pump_log
+           WHERE pump_type='main' AND flow_lpm IS NOT NULL AND pressure_kpa IS NOT NULL
+           ORDER BY id DESC LIMIT ?""",
+        (limit,),
+    ).fetchall()
+    rows = list(reversed(rows))  # 시간 오름차순 — 밸브를 열어가는 실제 순서 그대로
+    return [{"x": r["flow_lpm"], "y": r["pressure_kpa"]} for r in rows]
+
+
+def _extrapolate_to_zero_head(points, tail_n=5):
+    """
+    마지막 tail_n개 실측점의 국소 기울기(최소자승법)로 H=0이 되는 Q를 선형
+    외삽한다. 실측이 끝난 지점 이후를 점선으로 이어 그리기 위한 추정치일 뿐
+    실측값이 아니다 — 반드시 대시보드에서 스타일로 구분해서 표시할 것.
+    외삽이 물리적으로 말이 안 되는 경우(기울기가 0 이상, 또는 이미 실측 구간
+    안에서 0이 되어야 하는 모순)엔 조용히 None을 반환해 곡선을 그리지 않는다.
+    """
+    if len(points) < 2:
+        return None
+    tail = points[-min(tail_n, len(points)):]
+    n = len(tail)
+    sum_x = sum(p["x"] for p in tail)
+    sum_y = sum(p["y"] for p in tail)
+    sum_xx = sum(p["x"] ** 2 for p in tail)
+    sum_xy = sum(p["x"] * p["y"] for p in tail)
+    denom = n * sum_xx - sum_x ** 2
+    if denom == 0:
+        return None  # 이 구간에서 유량이 전혀 안 변함 — 기울기 계산 불가
+    slope = (n * sum_xy - sum_x * sum_y) / denom
+    intercept = (sum_y - slope * sum_x) / n
+    if slope >= 0:
+        return None  # 유량이 늘어도 압력이 안 떨어지는 이례적 구간 — 외삽 생략
+    q_at_zero = -intercept / slope
+    if q_at_zero <= points[-1]["x"]:
+        return None  # 이미 실측 구간 안에서 0이 되어야 한다는 모순 — 외삽 생략
+    return {"x": q_at_zero, "y": 0}
+
+
 def _get_performance_test_summary(conn):
     """
     v3 §4: 성능시험(1차, 규칙기반) 최신 결과 + AI(2차) 판정과의 일치 여부.
@@ -163,19 +210,16 @@ def _get_performance_test_summary(conn):
            ORDER BY id DESC LIMIT 1"""
     ).fetchone()
 
-    # H-Q 곡선(체절/정격/과부하 3점) — 체절/부하를 별개 시험처럼 나눠 보여주던 기존
-    # 방식 대신, 소방펌프 성능시험의 원래 성격대로 하나의 곡선으로 통합한다(2026-08-23).
-    # 정격운전점은 실측이 아니라 펌프 사양(RATED_FLOW_LPM/RATED_PRESSURE_KPA)에서 오는
-    # 고정 참조점이고, 체절/과부하 두 점만 밸브 잠금/개방 시험의 실측 압력값이다.
-    # Q(유량) 자체는 유량센서가 아직 없어 실측하지 않고, 소방법이 정의한 목표 유량
-    # 비율(0%/100%/150%)을 그대로 쓴다 — 밸브 개도가 유량을 결정하는 유일한 변수라
-    # 압력만으로 상태를 추정하는 기존 VALVE_AUTO_DETECT_* 판정과 같은 전제다.
-    hq_points = [{"label": "정격운전점", "x": RATED_FLOW_LPM, "y": RATED_PRESSURE_KPA}]
-    if closed and closed["pressure_kpa"] is not None:
-        hq_points.append({"label": "체절운전점", "x": 0, "y": closed["pressure_kpa"]})
-    if open_ and open_["pressure_kpa"] is not None:
-        hq_points.append({"label": "과부하운전점(150%)", "x": RATED_FLOW_LPM * 1.5, "y": open_["pressure_kpa"]})
-    hq_points.sort(key=lambda p: p["x"])
+    # H-Q 곡선 — 2026-08-23부터 유량센서(flow_lpm) 실측값이 들어오면서, 목표
+    # 3점(체절/정격/과부하)만 잇던 방식 대신 실제 밸브를 열어가는 동안의 전체
+    # 궤적(transition 포함)을 그대로 그릴 수 있게 됐다. 실측이 끝난 지점부터는
+    # 같은 추세로 외삽한 점선을 이어붙여 "정격/과부하 지점 도달 전에 H가 0이
+    # 된다"는 걸 시각적으로 보여준다 — 정격운전점만 여전히 이론 참조 마커로 별도 표시.
+    measured_points = _get_latest_performance_test_points(conn)
+    zero_point = _extrapolate_to_zero_head(measured_points)
+    extrapolation_line = (
+        [measured_points[-1], zero_point] if (measured_points and zero_point) else []
+    )
 
     return {
         "closed": dict(closed) if closed else None,
@@ -185,7 +229,9 @@ def _get_performance_test_summary(conn):
         "ai_match": (match_row["label"] == match_row["predicted_label"]) if match_row else None,
         "last_test_days_ago": last_test_freshness_days(conn),
         "environment_desc": describe_environment(),
-        "hq_points": hq_points,
+        "measured_points": measured_points,
+        "extrapolation_line": extrapolation_line,
+        "rated_reference": {"x": RATED_FLOW_LPM, "y": RATED_PRESSURE_KPA},
     }
 
 
