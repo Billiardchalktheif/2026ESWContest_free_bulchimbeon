@@ -109,7 +109,7 @@
       <div class="row">node_id: <b>{{ water_pump.jockey.node_id }}</b>
         {% if water_pump.heartbeat_jockey %}<span class="hb {{ 'online' if water_pump.heartbeat_jockey.online else 'offline' }}">{{ 'online' if water_pump.heartbeat_jockey.online else 'offline' }}</span>{% endif %}
       </div>
-      <div class="row">최근 기동간격: <b>{{ "%.1f"|format(water_pump.jockey.cycle_interval_sec) }} 초</b></div>
+      <div class="row">최근 기동간격: <b>{{ "%.1f"|format(water_pump.jockey.cycle_interval_sec) ~ " 초" if water_pump.jockey.cycle_interval_sec is not none else "N/A" }}</b></div>
       {% else %}
       <div class="row">데이터 없음</div>
       {% endif %}
