@@ -17,7 +17,7 @@ from flask import Flask, jsonify, render_template, request
 sys.path.append(str(Path(__file__).parent.parent / "server"))
 from pump_performance_test import (  # noqa: E402
     classify_performance_result, describe_environment, last_test_freshness_days,
-    mark_valve_state_manual,
+    mark_valve_state_manual, RATED_FLOW_LPM, RATED_PRESSURE_KPA,
 )
 from judge.regression import EVAC_MIN_DISCHARGE_MIN  # noqa: E402
 from judge.nuisance_baseline import request_demo_trigger  # noqa: E402
@@ -159,6 +159,20 @@ def _get_performance_test_summary(conn):
            ORDER BY id DESC LIMIT 1"""
     ).fetchone()
 
+    # H-Q 곡선(체절/정격/과부하 3점) — 체절/부하를 별개 시험처럼 나눠 보여주던 기존
+    # 방식 대신, 소방펌프 성능시험의 원래 성격대로 하나의 곡선으로 통합한다(2026-08-23).
+    # 정격운전점은 실측이 아니라 펌프 사양(RATED_FLOW_LPM/RATED_PRESSURE_KPA)에서 오는
+    # 고정 참조점이고, 체절/과부하 두 점만 밸브 잠금/개방 시험의 실측 압력값이다.
+    # Q(유량) 자체는 유량센서가 아직 없어 실측하지 않고, 소방법이 정의한 목표 유량
+    # 비율(0%/100%/150%)을 그대로 쓴다 — 밸브 개도가 유량을 결정하는 유일한 변수라
+    # 압력만으로 상태를 추정하는 기존 VALVE_AUTO_DETECT_* 판정과 같은 전제다.
+    hq_points = [{"label": "정격운전점", "x": RATED_FLOW_LPM, "y": RATED_PRESSURE_KPA}]
+    if closed and closed["pressure_kpa"] is not None:
+        hq_points.append({"label": "체절운전점", "x": 0, "y": closed["pressure_kpa"]})
+    if open_ and open_["pressure_kpa"] is not None:
+        hq_points.append({"label": "과부하운전점(150%)", "x": RATED_FLOW_LPM * 1.5, "y": open_["pressure_kpa"]})
+    hq_points.sort(key=lambda p: p["x"])
+
     return {
         "closed": dict(closed) if closed else None,
         "closed_result": classify_performance_result("closed", closed["rated_pressure_pct"]) if closed else None,
@@ -167,6 +181,7 @@ def _get_performance_test_summary(conn):
         "ai_match": (match_row["label"] == match_row["predicted_label"]) if match_row else None,
         "last_test_days_ago": last_test_freshness_days(conn),
         "environment_desc": describe_environment(),
+        "hq_points": hq_points,
     }
 
 

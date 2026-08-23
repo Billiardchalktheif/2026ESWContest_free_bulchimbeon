@@ -135,24 +135,13 @@
         </span>
         {% endif %}
       </h2>
-      <div class="row">체절(140% 기준): {% if water_pump.performance_test.closed %}
-        <b>{{ "%.1f%%"|format(water_pump.performance_test.closed.rated_pressure_pct) if water_pump.performance_test.closed.rated_pressure_pct is not none else "계산중" }}</b>
-        — {{ water_pump.performance_test.closed_result or "판정불가" }}
-        {% else %}측정 이력 없음{% endif %}</div>
-      <div class="row">부하(65% 기준): {% if water_pump.performance_test.open %}
-        <b>{{ "%.1f%%"|format(water_pump.performance_test.open.rated_pressure_pct) if water_pump.performance_test.open.rated_pressure_pct is not none else "계산중" }}</b>
-        — {{ water_pump.performance_test.open_result or "판정불가" }}
-        {% else %}측정 이력 없음{% endif %}</div>
+      <canvas id="pumpHQChart"></canvas>
+      <div class="row" style="color:#888">체절: {{ water_pump.performance_test.closed_result or "측정 이력 없음" }}
+        · 과부하(150%): {{ water_pump.performance_test.open_result or "측정 이력 없음" }}</div>
       <div class="row" style="color:#888">마지막 성능시험: {{ "%.1f일 전"|format(water_pump.performance_test.last_test_days_ago) if water_pump.performance_test.last_test_days_ago is not none else "이력 없음" }}</div>
       <div class="row" style="color:#888">{{ water_pump.performance_test.environment_desc }}</div>
-      <div class="row" style="color:#888">⚠ 밸브는 니들밸브(수동 조작) — 발표자가 직접 잠그고 엽니다. 평상시엔 압력값
-        패턴으로 서버가 체절/부하를 자동 추정하고, 아래 버튼은 그 추정이 불안정할 때
-        쓰는 수동 대안입니다.</div>
-      <div class="row">
-        <button onclick="triggerValveState('closed')">체절시험 시작(수동)</button>
-        <button onclick="triggerValveState('open')">부하시험 시작(수동)</button>
-        <span id="valveTriggerResult" style="color:#888"></span>
-      </div>
+      <div class="row" style="color:#888">⚠ 밸브는 니들밸브(수동 조작) — 발표자가 직접 잠그고 엽니다.
+        Q(유량)는 유량센서 미장착으로 목표 비율(0/100/150%)이고, H(양정)만 실측값입니다.</div>
     </div>
   </div>
 
@@ -217,21 +206,6 @@
   </div>
 
 <script>
-  // §5-2 대안: 압력 자동추정이 불안정할 때 쓰는 수동 트리거 버튼
-  function triggerValveState(valveState) {
-    const resultEl = document.getElementById('valveTriggerResult');
-    fetch('/pump/manual_valve_trigger', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'valve_state=' + encodeURIComponent(valveState),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        resultEl.textContent = data.ok ? `트리거 등록됨: ${data.valve_state}` : `실패: ${data.error}`;
-      })
-      .catch(() => { resultEl.textContent = '요청 실패'; });
-  }
-
   // 자탐2(광전식) 비화재보 판별 시연 모드 — 방법 B(3분간 고정 기준점) 시작 트리거
   function triggerNuisanceDemo(nodeId) {
     const resultEl = document.getElementById('nuisanceDemoResult-' + nodeId);
@@ -264,6 +238,37 @@
       }]
     },
     options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+  });
+
+  const hqCtx = document.getElementById('pumpHQChart');
+  const hqPoints = {{ water_pump.performance_test.hq_points | tojson }};
+  new Chart(hqCtx, {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: 'H-Q 곡선',
+        data: hqPoints.map((p) => ({ x: p.x, y: p.y })),
+        showLine: true,
+        borderColor: '#2e6da4',
+        backgroundColor: '#2e6da4',
+        pointRadius: 6,
+        tension: 0.3
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => hqPoints[ctx.dataIndex].label + `: Q=${ctx.parsed.x}L/min, H=${ctx.parsed.y}kPa`
+          }
+        }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Q (유량, L/min)' }, beginAtZero: true },
+        y: { title: { display: true, text: 'H (양정, kPa)' }, beginAtZero: true }
+      }
+    }
   });
 </script>
 </body>
