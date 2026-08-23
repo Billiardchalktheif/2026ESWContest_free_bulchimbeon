@@ -209,19 +209,22 @@ def get_water_pump_card(conn, heartbeats):
         "SELECT * FROM water_pump_log WHERE pump_type='jockey' ORDER BY id DESC LIMIT 1"
     ).fetchone()
 
+    # 2026-08-23: 'main' -> 'jockey'로 정정 + 라벨 어휘를 실제 학습 클래스에 맞춤.
+    # 주펌프는 v13 이후 predicted_label이 절대 안 채워지므로(INA219 제거) 이 이력
+    # 표는 애초에 잘못된 대상을 보고 있었다. 실제 클래스 어휘는 pump_performance_test.py의
+    # VALVE_STATE_TO_LABEL(주펌프 밸브시험용, normal_operation/stall_operation/...)과
+    # 이름이 완전히 다르다 — data/수계 엣지/combined_all_labeled.csv 실측 확인:
+    # normal/low_flow/dryrun/start_fail 4클래스(체절 없음, 충압펌프 특성상 배제).
     history_rows = conn.execute(
         """SELECT ts, COALESCE(predicted_label, label) AS shown_label, confidence
-           FROM water_pump_log WHERE pump_type='main' AND COALESCE(predicted_label, label) IS NOT NULL
+           FROM water_pump_log WHERE pump_type='jockey' AND COALESCE(predicted_label, label) IS NOT NULL
            ORDER BY id DESC LIMIT 30"""
     ).fetchall()
     history = list(reversed(history_rows))
 
-    # v7: 라벨 5클래스 체계(server/pump_performance_test.py 참고). flow_reduced/
-    # startup_failure는 지금 실험 조건으로는 안 나오는 클래스라 항상 0으로 뜨는 게 정상.
-    # stall_operation(체절운전)은 이 이력 표에서 제외 — 대시보드 화면 표시 대상이 아님.
     label_counts = {
-        "normal_operation": 0, "dry_run": 0,
-        "flow_reduced": 0, "startup_failure": 0,
+        "normal": 0, "dryrun": 0,
+        "low_flow": 0, "start_fail": 0,
     }
     for r in history:
         if r["shown_label"] in label_counts:

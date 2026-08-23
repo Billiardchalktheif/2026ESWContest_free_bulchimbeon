@@ -211,7 +211,11 @@ def handle_packet(conn, pkt: dict):
         # 실측 데이터(성능시험 중이든 평상시든)에 대해 매번 독립적으로 추론을 돌리고,
         # 성능시험 중이었다면 같은 행에 채워진 label(성능시험 정답)과 predicted_label(AI
         # 추론)을 나중에 대시보드가 비교해 일치/불일치를 보여준다.
-        if pkt.get("pump_type") == "main" and label is None and pkt.get("rms") is not None:
+        # 2026-08-23: 'main' -> 'jockey'로 정정. 주펌프는 v13에서 INA219가 제거돼
+        # rms가 항상 NaN이라 이 조건이 실질적으로 죽은 코드였다(추론이 한 번도
+        # 안 돎). 실제 rms/peak/duty_cycle을 매번 보내는 건 충압펌프이고,
+        # ml/train_pump_classifier.py도 이미 jockey 데이터로 학습하도록 돼 있다.
+        if pkt.get("pump_type") == "jockey" and label is None and pkt.get("rms") is not None:
             predicted_label, confidence = predict_pump_label(
                 pkt["rms"], pkt["peak"], pkt["duty_cycle"]
             )
