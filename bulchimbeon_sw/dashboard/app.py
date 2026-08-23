@@ -187,8 +187,9 @@ def get_water_pump_card(conn, heartbeats):
 
     # v7: 라벨 5클래스 체계(server/pump_performance_test.py 참고). flow_reduced/
     # startup_failure는 지금 실험 조건으로는 안 나오는 클래스라 항상 0으로 뜨는 게 정상.
+    # stall_operation(체절운전)은 이 이력 표에서 제외 — 대시보드 화면 표시 대상이 아님.
     label_counts = {
-        "normal_operation": 0, "stall_operation": 0, "dry_run": 0,
+        "normal_operation": 0, "dry_run": 0,
         "flow_reduced": 0, "startup_failure": 0,
     }
     for r in history:

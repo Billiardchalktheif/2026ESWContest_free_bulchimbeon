@@ -118,10 +118,9 @@
       <h2>최근 파형 분류 이력 (최대 30개)</h2>
       <canvas id="pumpHistoryChart"></canvas>
       <table>
-        <tr><th>정상운전</th><th>체절운전</th><th>공회전</th><th>유량저하</th><th>기동실패</th></tr>
+        <tr><th>정상운전</th><th>공회전</th><th>유량저하</th><th>기동실패</th></tr>
         <tr>
           <td>{{ water_pump.label_counts.normal_operation }}</td>
-          <td>{{ water_pump.label_counts.stall_operation }}</td>
           <td>{{ water_pump.label_counts.dry_run }}</td>
           <td>{{ water_pump.label_counts.flow_reduced }}</td>
           <td>{{ water_pump.label_counts.startup_failure }}</td>
@@ -252,17 +251,16 @@
   new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: ['정상운전', '체절운전', '공회전', '유량저하', '기동실패'],
+      labels: ['정상운전', '공회전', '유량저하', '기동실패'],
       datasets: [{
         label: '최근 판정 분포',
         data: [
           {{ water_pump.label_counts.normal_operation }},
-          {{ water_pump.label_counts.stall_operation }},
           {{ water_pump.label_counts.dry_run }},
           {{ water_pump.label_counts.flow_reduced }},
           {{ water_pump.label_counts.startup_failure }}
         ],
-        backgroundColor: ['#2e9e44', '#d9362e', '#e0a11c', '#e07b1c', '#8a2be2']
+        backgroundColor: ['#2e9e44', '#e0a11c', '#e07b1c', '#8a2be2']
       }]
     },
     options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
