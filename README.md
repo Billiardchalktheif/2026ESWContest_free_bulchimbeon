@@ -193,6 +193,13 @@
       - incense_raw_timeseries.csv / incense_session_summary.csv
       - heat_raw_timeseries.csv / heat_session_summary.csv
       - fire_raw_timeseries.csv / fire_session_summary.csv
+  - `차동식 엣지/`
+    - 01_no_response_15min_actual_temp.csv / _serial_log.csv — 무반응시험
+    - 02_non_operation_15min_trial1_actual_temp.csv / _serial_log.csv — 부작동시험 1회(방법론 부적합, 참고용)
+    - 03_non_operation_15min_trial2_actual_temp.csv / _serial_log.csv — 부작동시험 2회(물리조건 충족)
+    - 04_operation_2min_trial1_actual_temp.csv / _serial_log.csv — 작동시험 1회
+    - 05_operation_2min_trial2_actual_temp.csv / _serial_log.csv — 작동시험 2회(캘리브레이션 최종 채택)
+    - 차동식_실험보고서.md — 최종 확정값(TEMP_RAW_PER_C=-139.0 등) 및 회귀분석 리포트
   - `가스계 엣지/`
     - gas_node_log.csv — 로드셀 원본 로그(817포인트, 5분 간격)
     - gas_regression_chart.png — 회귀검증 차트

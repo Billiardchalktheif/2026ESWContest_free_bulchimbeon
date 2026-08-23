@@ -46,6 +46,21 @@
 - **heat_raw_timeseries.csv / heat_session_summary.csv** — 열풍기 단독(연소 없이 열만), 10세션. 컬럼(raw): `session_id, label, idx, loop_r_ohm, mq2_raw, temp_c, humidity_pct` / 컬럼(summary): `session_id, n_samples, loop_r_avg_ohm, mq2_start/peak/rise_pct, temp_start/peak/rise_c, hum_start/min/drop_pp/drop_pct`. 결과: MQ2 +2.86%(거의 무반응), 습도 -29.01%(하강), 온도 +10.32°C — 열만 있고 연소 부산물이 없으면 MQ2가 반응하지 않는다는 대조군.
 - **fire_raw_timeseries.csv / fire_session_summary.csv** — 향+열원 동시(화재 모의), 원래 10세션에서 1·2회차 중복이 확인돼 병합한 9세션. 컬럼(raw): `session_id, label, idx, loop_r_ohm, mq2_raw, temp_c, humidity_pct` / 컬럼(summary): `session_id, n_samples, mq2_start/peak/rise_pct, temp_start/peak/rise_c, hum_start/min/drop_pct`. 결과: MQ2 +23.85%, 습도 -35.94%(전체 클래스 중 최대 하강), 온도 +13.06°C — heat 대비 MQ2 반응과 습도 하강폭이 더 커서 heat와 구분됨.
 
+## 차동식 엣지/
+
+자탐1(차동식구역, `fire_alarm_differential_node.ino`) 노드의 NTC 온도센서 raw↔℃ 캘리브레이션과, "감지기의 형식승인 및 검정기술기준" 제14조(차동식스포트형감지기 1종) 기준 온도 상승률 판정 임계값을 확정하기 위한 5개 실험입니다. 열원은 가정용 열풍기, 실측온도는 시판 디지털 온도계로 수기 기록했습니다.
+
+- **01_no_response_15min_actual_temp.csv / _serial_log.csv** — 실험1 무반응시험(15분, 무열원). actual_temp 컬럼: `elapsed_sec, actual_temp_c` / serial_log 컬럼: `boot_elapsed_sec, ts, raw_adc, voltage_v, temp_c_placeholder, loop_resistance_ohm`. raw 노이즈 바닥(폭 83, 5초 구간 변화량 -54~+32) 확인용.
+- **02_non_operation_15min_trial1_actual_temp.csv / _serial_log.csv** — 실험2 부작동시험 1회(간헐적 버스트 조사). 구간 최대 상승률 +10.2℃/min로 오히려 작동시험 기준에 해당해 **방법론 부적합 판정, 참고용으로만 보존**.
+- **03_non_operation_15min_trial2_actual_temp.csv / _serial_log.csv** — 실험3 부작동시험 2회(거리 고정, 저출력 연속 15분). 구간 최대 상승률 +2.00℃/min로 규정 상한(2℃/min)에 정확히 부합 — **부작동시험 물리조건 충족**. raw에서 단일 샘플 이상치 다수 발견되어 이후 median filter 도입의 근거가 됨.
+- **04_operation_2min_trial1_actual_temp.csv / _serial_log.csv** — 실험4 작동시험 1회(2분 연속 거리 변화 조사, "와리가리"). 22.2℃→106.6℃(120초), 최대 상승률 238.2℃/min.
+- **05_operation_2min_trial2_actual_temp.csv / _serial_log.csv** — 실험5 작동시험 2회(1분 가열+자연냉각). 22.5℃→78.3℃(70초) 후 냉각. **최종 캘리브레이션 채택 데이터**(가열 상승구간만 사용, 냉각구간은 온도계-NTC 반응속도 차이로 인한 hysteresis 때문에 제외).
+- **차동식_실험보고서.md** — 5개 실험 전체 분석 및 최종 확정값 리포트. 핵심 결론:
+  - raw↔℃ 회귀는 실험5의 **가열(상승) 구간만** 사용(R²=0.956) — 냉각 구간은 손 온도계와 임베디드 NTC 간 열적 반응 지연(hysteresis)으로 동일 온도에서 raw가 1000 이상 차이나 배제
+  - 최종 확정 상수: `TEMP_RAW_PER_C = -139.0`, `RATE_WINDOW_SAMPLES = 5`(20~25초 창), `ALARM_RAW_DROP_PER_WINDOW = 500`
+  - ⚠️ 부작동시험(실험3) 원본에 확정 임계값(500) 근소 초과(554) 구간 존재 — median filter 적용 후 재검증 미실시(가장 우선순위 높은 후속 과제로 명시)
+  - 실제 작동시험 raw 하락폭(4580~7708)은 확정 임계값의 7배 이상이라 슬로프 추정 오차가 있어도 실화재 미탐지 위험은 낮다고 판단
+
 ## 가스계 엣지/
 
 가스저장용기(CO2) 무게를 로드셀(HX711)로 상시 측정해 약제 손실률을 추적하는 실험입니다. 실물 CO2 용기 대신 자동 방향제 분사기(7분 30초 간격 분사)로 무게 손실을 흉내내 약 3.85일간 5분 간격으로 로깅했습니다.
