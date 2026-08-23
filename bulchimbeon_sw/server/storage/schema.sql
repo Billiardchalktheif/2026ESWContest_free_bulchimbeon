@@ -49,9 +49,12 @@ CREATE INDEX IF NOT EXISTS idx_fire_alarm_log_node_id ON fire_alarm_log(node_id,
 -- v4: 밸브는 니들밸브(수동 조작)로 정정됨 — ESP32는 밸브를 직접 제어하지 않고, 압력값
 -- 패턴을 보고 서버가 valve_state를 "추정"한다(§5). 그래서 valve_state는 ESP32가 보낸
 -- 패킷 필드가 아니라 server/pump_performance_test.py가 pressure_kpa로부터 채워 넣는 값이다.
--- v7: label 값 도메인이 5클래스로 재정의됨 — normal_operation/stall_operation/dry_run/
--- flow_reduced/startup_failure (뒤 2개는 아직 재현 시나리오가 없어 실제로는 안 나옴).
--- 자세한 내용은 server/pump_performance_test.py 참고.
+-- v8: 주펌프는 전류센서(INA219) 미장착으로 AI 분류 대상에서 제외됨 — 압력 기반
+-- 규칙판정(server/pump_performance_test.py, valve_state/pressure_kpa/rated_pressure_pct)만
+-- 적용된다. rms/peak/duty_cycle/label/predicted_label은 pump_type='jockey' 행에만
+-- 채워지며, 라벨 도메인은 normal/low_flow/dryrun/start_fail 4클래스다(체절 없음 —
+-- 충압펌프 특성상 배제, data/수계 엣지/충압펌프_전류파형_분석_보고서.md 참고).
+-- 자세한 학습 로직은 ml/train_pump_classifier.py 참고.
 CREATE TABLE IF NOT EXISTS water_pump_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ts REAL NOT NULL,

@@ -1,13 +1,15 @@
 """
-수계 주펌프 파형 분류기 학습.
-DB의 water_pump_log(pump_type='main', label IS NOT NULL) 데이터를 읽어
-RandomForest로 정상/과부하/공회전 3클래스 분류 모델을 학습한다.
+수계 충압펌프(jockey) 파형 분류기 학습.
+주펌프는 전류센서(INA219)가 없어 파형 데이터 자체가 없다 — AI 분류 대상에서 제외.
+DB의 water_pump_log(pump_type='jockey', label IS NOT NULL) 데이터를 읽어
+RandomForest로 normal/low_flow/dryrun/start_fail 4클래스 분류 모델을 학습한다.
+(체절 클래스는 포함하지 않음 — 충압펌프는 배관이 거의 충수된 상태에서 짧게
+보충하는 역할이라 체절과 정상운전의 파형 차이가 뚜렷하지 않을 것으로 판단해
+데이터 채집 단계에서 제외됨. data/수계 엣지/충압펌프_전류파형_분석_보고서.md 참고)
 
-v3: 라벨 출처(label_source) 우선순위 도입 — 성능시험(밸브+압력, 규칙기반)이 확정해준
-label_source='performance_test' 데이터가 사람이 추측해 붙인 'manual' 데이터보다
-신뢰도가 높다(server/pump_performance_test.py 참고). 그래서 성능시험 라벨이 학습에
-충분한 양(MIN_PERFORMANCE_TEST_SAMPLES) 모이면 그것만 쓰고, 아직 부족하면(초기
-개발 단계) manual 라벨도 보조로 섞어서 학습 자체는 계속 가능하게 한다.
+⚠️ normal과 low_flow의 RMS 값이 83.7% 겹친다(분석 보고서 §4.2) — RMS 단일
+지표로는 완전 분리가 안 되고 Peak/Duty까지 같이 봐야 한다. 또한 dryrun(39개)이
+low_flow(867개) 대비 극히 적어(1/22 수준) class_weight='balanced'로 보정한다.
 
 사용법: python ml/train_pump_classifier.py
 결과: server/judge/ai_models/pump_classifier.joblib 저장 + 정확도/혼동행렬/feature importance 출력
@@ -35,7 +37,7 @@ def load_labeled_data() -> pd.DataFrame:
     conn = sqlite3.connect(DB_PATH)
     performance_df = pd.read_sql_query(
         """SELECT rms, peak, duty_cycle, label FROM water_pump_log
-           WHERE pump_type='main' AND label IS NOT NULL AND label_source='performance_test'""",
+           WHERE pump_type='jockey' AND label IS NOT NULL AND label_source='performance_test'""",
         conn,
     )
     if len(performance_df) >= MIN_PERFORMANCE_TEST_SAMPLES:
@@ -46,7 +48,7 @@ def load_labeled_data() -> pd.DataFrame:
     # 성능시험 라벨이 아직 부족한 초기 단계 — manual 라벨도 보조로 포함해 학습 자체는 가능하게 함
     manual_df = pd.read_sql_query(
         """SELECT rms, peak, duty_cycle, label FROM water_pump_log
-           WHERE pump_type='main' AND label IS NOT NULL
+           WHERE pump_type='jockey' AND label IS NOT NULL
              AND (label_source IS NULL OR label_source='manual')""",
         conn,
     )
@@ -72,7 +74,9 @@ def train():
         X, y, test_size=0.25, random_state=42, stratify=y
     )
 
-    clf = RandomForestClassifier(n_estimators=200, max_depth=6, random_state=42)
+    clf = RandomForestClassifier(
+        n_estimators=200, max_depth=6, random_state=42, class_weight="balanced"
+    )
     clf.fit(X_train, y_train)
 
     y_pred = clf.predict(X_test)
