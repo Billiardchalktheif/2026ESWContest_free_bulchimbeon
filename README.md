@@ -51,8 +51,10 @@
 
 | 파일 | 담당 모듈 | 비고 |
 |---|---|---|
-| `fire_alarm_differential_node.ino` | 자탐1 (차동식구역) | ADS1115+TS0202, 온도상승률 계산 |
-| `fire_alarm_photoelectric_node.ino` | 자탐2 (광전식구역) | ADS1115+MQ-2+DHT22, AI 비화재보 판별 대상 |
+| `fire_alarm_differential_node.ino` | 자탐1 (차동식구역) | ADS1115+TS0202, 온도상승률 계산, 배선 열화 감지 |
+| `fire_alarm_differential_node_v5.ino` | 자탐1 (차동식구역) | 점검모드 신설 및 작동 택트스위치 설치 |
+| `fire_alarm_photoelectric_node.ino` | 자탐2 (광전식구역) | ADS1115+MQ-2+DHT22, AI 비화재보 판별 대상, 배선 열화 감지 |
+| `fire_alarm_photoelectric_node_v2.ino` | 자탐2 (광전식구역) |  | 점검모드 신설 및 작동 택트스위치 설치 |
 | `pump_node_INA219.ino` | 수계 | INA219(I2C) 기반 — CT클램프는 DC 측정 불가로 폐기, 이 파일이 최신 수정본 |
 | `pump_node_INA219_v7.ino` | 수계 | 유량센서 추가 및 압력센서를 통한 충압펌프 자동 기동 |
 | `pump_node_INA219_v23.ino` | 수계 | 압력센서 임계값 수정 및 주배관 측 압력값 기준으로 충압펌프 및 주펌프 작동 |
@@ -62,6 +64,7 @@
 | `gas_node_v3.ino` | 가스계 (CO2) | 영점(TARE), 기준중량저장(SET_INITIAL) 실행 명령어 작동 택트스위치 설치 |
 | `extinguisher_leafnode.ino` | 소화기 리프노드 ×4 | ESP32-C3, MPU6500+딥슬립, ESP-NOW 송신 |
 | `extinguisher_gateway.ino` | 소화기 게이트웨이 | ESP-NOW 수신 → WiFi/UDP 중계, 상시전원 |
+| `extinguisher_gateway_v2.ino` | 소화기 게이트웨이 | 점검모드 신설 및 작동 택트스위치 설치 |
 | `evac_light_node.ino` | 유도등 | CD74HC4067 멀티플렉서, 데모모드(20분→45초 압축) 포함 |
 | `evac_light_node_v2.ino` | 유도등 | 아날로그 멀티플렉서 및 조도센서 사용 삭제 |
 | `evac_light_node_v3.ino` | 유도등 | 방전시험을 거치며 얻은 결과를 기준으로 수정 |
@@ -257,9 +260,12 @@
   - evac_light_node_v3.ino
   - evac_light_node_v4.ino
   - extinguisher_gateway.ino
+  - extinguisher_gateway_v2.ino
   - extinguisher_leafnode.ino
   - fire_alarm_differential_node.ino
+  - fire_alarm_differential_node_v5.ino
   - fire_alarm_photoelectric_node.ino
+  - fire_alarm_photoelectric_node_v2.ino
   - gas_node.ino
   - gas_node_v2.ino
   - gas_node_v23ino
