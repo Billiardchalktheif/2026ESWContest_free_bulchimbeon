@@ -53,6 +53,17 @@ def get_heartbeats(conn):
     return result
 
 
+def get_recent_test_log(conn, node_id, limit=5):
+    """해당 노드의 최근 점검모드 판정 기록을 최신순으로 반환 — 합격/불합격 자동판정
+    없이 로그만 보여준다(인수인계 문서 §7-3)."""
+    rows = conn.execute(
+        """SELECT ts, judged_status FROM test_mode_log
+           WHERE node_id=? ORDER BY id DESC LIMIT ?""",
+        (node_id, limit),
+    ).fetchall()
+    return [{"ts": r["ts"], "judged_status": r["judged_status"]} for r in rows]
+
+
 def get_fire_alarm_cards(conn, heartbeats):
     """
     node_id별 최신 1건씩. v4: 자탐 2구역이 센서 구성이 완전히 달라(§3), zone_type에
@@ -119,6 +130,9 @@ def get_fire_alarm_cards(conn, heartbeats):
             "nuisance_confidence": r["confidence"],
             "heartbeat": heartbeats.get(r["node_id"]),
             "demo_mode": DEMO_MODE,  # 템플릿에서 열화 추세/잔여 고장시간 표시 여부 분기용
+            "temp_status": r["temp_status"],
+            "test_mode": bool(r["test_mode"]) if r["test_mode"] is not None else False,
+            "test_log": get_recent_test_log(conn, r["node_id"]) if r["zone_type"] == "differential" else [],
         })
     return cards
 

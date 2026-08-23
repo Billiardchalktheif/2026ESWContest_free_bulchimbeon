@@ -62,6 +62,18 @@
       {% endif %}
       {% if c.zone_type == 'differential' %}
       <div class="row">온도 상승률(dT/dt): <b>{{ "%.3f°C/초"|format(c.temp_rise_rate) if c.temp_rise_rate is not none else "계산중" }}</b></div>
+      <div class="row">온도상승률 판정:
+        {% if c.temp_status %}<span class="badge {{ c.temp_status }}">{{ c.temp_status }}</span>{% else %}<span class="badge unknown">펌웨어 미반영</span>{% endif %}
+        {% if c.test_mode %}<span class="badge unknown">점검모드 중</span>{% endif %}
+      </div>
+      {% if c.test_log %}
+      <details class="raw-detail">
+        <summary>점검 이력 (최근 {{ c.test_log|length }}건)</summary>
+        {% for t in c.test_log %}
+        <div>{{ t.ts|int }} — {{ t.judged_status }}</div>
+        {% endfor %}
+      </details>
+      {% endif %}
       {% elif c.zone_type == 'photoelectric' %}
       <div class="row">가스농도(raw): {{ c.mq2_raw if c.mq2_raw is not none else "N/A" }} · 습도: {{ "%.0f%%"|format(c.humidity_pct) if c.humidity_pct is not none else "N/A" }}</div>
       <div class="row">비화재보 판별(AI): <b>{{ c.nuisance_predicted_label or "판정 대기" }}</b>

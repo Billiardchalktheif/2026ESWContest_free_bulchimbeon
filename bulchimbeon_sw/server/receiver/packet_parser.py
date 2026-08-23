@@ -39,6 +39,7 @@ from judge.regression import (  # noqa: E402
     evaluate_evac_discharge_capacity, evaluate_evac_light, evaluate_loop_resistance, evaluate_gas,
 )
 from judge.rules import evaluate_tamper  # noqa: E402
+from judge.differential import evaluate_temp_rise_rate  # noqa: E402
 from pump_performance_test import determine_valve_state, evaluate_pump_performance_sample  # noqa: E402
 from config import is_node_online  # noqa: E402
 
@@ -110,20 +111,35 @@ def handle_packet(conn, pkt: dict):
         zone = pkt.get("zone", node_id)
         zone_type = pkt.get("zone_type")  # 'differential' / 'photoelectric' — v4: 2구역 센서구성 분리
         label = pkt.get("label")  # 광전식구역 학습 데이터 수집시에만 실림(더미 생성기 등)
+        # test_mode: 자탐1 물리 택트스위치 상태. 구형 펌웨어(필드 없음)는 기본 0(평상시)으로 처리.
+        packet_test_mode = bool(pkt.get("test_mode", 0))
         cur = conn.execute(
             """INSERT INTO fire_alarm_log
                (ts, node_id, zone, zone_type, loop_resistance_ohm,
-                temp_rise_rate, mq2_raw, temp_c, humidity_pct, label)
-               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                temp_rise_rate, mq2_raw, temp_c, humidity_pct, label,
+                temp_raw_adc, temp_v, boot_elapsed_ms, test_mode)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 ts, node_id, zone, zone_type, loop_resistance,
                 pkt.get("temp_rise_rate"),
                 # MQ-2/DHT22는 광전식구역 비화재보 판별(AI)의 입력 feature
                 pkt.get("mq2_raw"), pkt.get("temp_c"), pkt.get("humidity_pct"), label,
+                # 차동식구역 온도상승률 판정용 — 펌웨어 미반영 시 전부 None/0으로 들어옴
+                pkt.get("temp_raw_adc"), pkt.get("temp_v"), pkt.get("boot_elapsed_ms"),
+                int(packet_test_mode),
             ),
         )
-        # 적재 직후 루프저항 2층 판정 (법정 절대임계값 + 선형회귀 추세) — 두 구역 공통
+        # 적재 직후 루프저항 2층 판정 (법정 절대임계값 + 선형회귀 추세) — 두 구역 공통.
+        # 점검모드와 무관 — 열원시험이 아니라 도통시험 성격이라 이번 범위 밖(인수인계 문서 §7-4).
         evaluate_loop_resistance(conn, node_id, cur.lastrowid, loop_resistance, zone)
+
+        # 자탐1 온도상승률 판정 — differential 구역만 대상. temp_raw_adc가 없으면
+        # (펌웨어 미반영) 함수 내부에서 조용히 판정을 건너뛴다.
+        if zone_type == "differential":
+            evaluate_temp_rise_rate(
+                conn, node_id, cur.lastrowid, pkt.get("temp_raw_adc"),
+                zone=zone, packet_test_mode=packet_test_mode,
+            )
 
         # 비화재보 판별 AI(2번째 AI 적용 지점) — 광전식구역이면서 label이 없는
         # 경우(=학습 데이터 수집이 아니라 실측 운영 데이터)에만 추론을 돌린다.

@@ -25,6 +25,15 @@ CREATE TABLE IF NOT EXISTS fire_alarm_log (
     loop_rttf_days REAL,                 -- 2층: 잔여 고장시간 예측 (일), 기울기<=0이면 NULL
     status TEXT DEFAULT 'normal',        -- normal / caution / alarm (루프저항 2층 판정)
     temp_rise_rate REAL,                 -- 차동식구역: 온도 상승률(°C/초) — 화재 재현 판정 근거
+    temp_raw_adc INTEGER,                -- 차동식구역: TS0202 raw ADC (판정은 이 값 기준, temp_c 신뢰 금지)
+    temp_v REAL,                         -- 차동식구역: raw 전압값 (디버그/캘리브레이션용)
+    boot_elapsed_ms INTEGER,             -- 차동식구역: 부팅 후 경과 ms (NTP 미동기화 판단 보조)
+    temp_status TEXT,                    -- 차동식구역: 온도상승률 판정 결과 (evaluate_temp_rise_rate)
+                                          -- — status(루프저항 전용) 컬럼과 별개, 절대 혼용하지 말 것.
+                                          -- DEFAULT 없음: NULL="아직 판정 안 됨"(펌웨어 미반영 등)과
+                                          -- 'normal'="판정했더니 정상"을 구분해야 하므로, INSERT 시점엔
+                                          -- 항상 비워두고 evaluate_temp_rise_rate()의 UPDATE만 값을 채운다.
+    test_mode INTEGER DEFAULT 0,         -- 점검모드 여부 (노드 물리 택트스위치 값 그대로, 상시 상태 저장 안 함)
     mq2_raw INTEGER,                     -- 광전식구역: MQ-2 가스센서 원시값 (ADS1115 A0)
     temp_c REAL,                         -- 광전식구역: DHT22 온도
     humidity_pct REAL,                   -- 광전식구역: DHT22 습도
@@ -129,6 +138,17 @@ CREATE TABLE IF NOT EXISTS evac_light_log (
     status TEXT DEFAULT 'normal',        -- normal / warning(estimated_discharge_min이 법정
                                           -- 최소 작동시간 미달로 실측된 경우에만 갱신됨)
     demo_mode INTEGER DEFAULT 0           -- 결선 실시간 데모모드 여부
+);
+
+-- 점검모드(Test Mode) 판정 기록 — 자탐1 최초 적용, 추후 자탐2/소화기 확장 대상
+-- (인수인계 문서 §7-4). 합격/불합격 자동판정 없음, 사람이 로그를 보고 직접 해석한다.
+CREATE TABLE IF NOT EXISTS test_mode_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts REAL NOT NULL,
+    device_type TEXT NOT NULL,
+    zone TEXT NOT NULL,
+    node_id TEXT,
+    judged_status TEXT NOT NULL       -- evaluate_*()가 낸 원래 판정 (normal/caution/alarm) — 그대로 기록만
 );
 
 CREATE TABLE IF NOT EXISTS node_heartbeat (
