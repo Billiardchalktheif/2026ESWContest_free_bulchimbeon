@@ -22,7 +22,7 @@ AI_MODELS_DIR = SERVER_DIR / "judge" / "ai_models"
 # ---- 가스계 (server/judge/regression.py에서 사용) ----
 DEFAULT_GAS_TYPE = "co2"
 GAS_LOSS_THRESHOLD_PCT = {
-    "co2": 5.0,     # ⚠️ 소방시설 점검관리 매뉴얼 1권 10%(예외 있음) vs 2권 5% — 팀 확인 대기 중,
+    "co2": 10.0,     # ⚠️ 소방시설 점검관리 매뉴얼 1권 10%(예외 있음) vs 2권 5% — 팀 확인 대기 중,
                      # 확정 전까지 보수적으로 낮은 값(5%) 채택
     "halon": 5.0,   # 압력손실 10% 미만 '또는' 중량손실 5% 미만 -> 중량 기준(5%) 적용
     "inert": 5.0,   # 원 기준은 압력손실 5% 미만(IG계열) -> 중량센서로 근사 적용
@@ -30,7 +30,7 @@ GAS_LOSS_THRESHOLD_PCT = {
 # ⚠️ 공병(약제 없는 용기) 중량 — 반드시 설치 현장에서 실측 캘리브레이션 필요.
 # ESP32는 이 값을 보내지 않으므로 서버가 여기서 가져와 evaluate_gas() 호출 시 넘겨준다.
 # 0.0으로 두면 총중량 기준 계산이 되어 손실률이 과소평가된다(v7 버그수정 배경 참고).
-DEFAULT_EMPTY_CONTAINER_WEIGHT_G = 0.0
+DEFAULT_EMPTY_CONTAINER_WEIGHT_G = 260.0
 
 # ---- 자탐 루프저항 판정 (server/judge/regression.py의 evaluate_loop_resistance에서 사용) ----
 # 두 구역(자탐1 차동식/자탐2 광전식) 공통 — 루프저항 회로가 동일 설계이기 때문.
