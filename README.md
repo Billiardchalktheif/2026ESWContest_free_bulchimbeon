@@ -80,6 +80,7 @@
 | `gas_node_v3.ino` | 가스계 (CO2) | 영점(TARE), 기준중량저장(SET_INITIAL) 실행 명령어 작동 택트스위치 설치 |
 | `gas_node_v4.ino` | 가스계 (CO2) | 워치독 로직 삽입 |
 | `extinguisher_leafnode.ino` | 소화기 리프노드 ×4 | ESP32-C3, MPU6500+딥슬립, ESP-NOW 송신 |
+| `extinguisher_leafnode_v2.ino` | 소화기 리프노드 ×4 | 워치독 로직 삽입 과정에서 충돌로 인한 딥슬립 로직 삭제 |
 | `extinguisher_gateway.ino` | 소화기 게이트웨이 | ESP-NOW 수신 → WiFi/UDP 중계, 상시전원 |
 | `extinguisher_gateway_v2.ino` | 소화기 게이트웨이 | 점검모드 신설 및 작동 택트스위치 설치 |
 | `extinguisher_gateway_v3.ino` | 소화기 게이트웨이 | 워치독 로직 삽입 |
