@@ -8,5 +8,5 @@ DB가 아직 없으면(최초 실행) 먼저 server/storage/db.py로 초기화�
 """
 from receiver.udp_listener import run_server
 
-if __name__ == "__main__":
-    run_server()
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=9000)
