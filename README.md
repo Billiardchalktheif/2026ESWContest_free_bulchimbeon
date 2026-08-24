@@ -66,22 +66,28 @@
 |---|---|---|
 | `fire_alarm_differential_node.ino` | 자탐1 (차동식구역) | ADS1115+TS0202, 온도상승률 계산, 배선 열화 감지 |
 | `fire_alarm_differential_node_v5.ino` | 자탐1 (차동식구역) | 점검모드 신설 및 작동 택트스위치 설치 |
+| `fire_alarm_differential_node_v6.ino` | 자탐1 (차동식구역) | 워치독 로직 삽입 |
 | `fire_alarm_photoelectric_node.ino` | 자탐2 (광전식구역) | ADS1115+MQ-2+DHT22, AI 비화재보 판별 대상, 배선 열화 감지 |
 | `fire_alarm_photoelectric_node_v2.ino` | 자탐2 (광전식구역) | 점검모드 신설 및 작동 택트스위치 설치 |
+| `fire_alarm_photoelectric_node_v3.ino` | 자탐2 (광전식구역) | 워치독 로직 삽입 |
 | `pump_node_INA219.ino` | 수계 | INA219(I2C) 기반 — CT클램프는 DC 측정 불가로 폐기, 이 파일이 최신 수정본 |
 | `pump_node_INA219_v7.ino` | 수계 | 유량센서 추가 및 압력센서를 통한 충압펌프 자동 기동 |
 | `pump_node_INA219_v23.ino` | 수계 | 압력센서 임계값 수정 및 주배관 측 압력값 기준으로 충압펌프 및 주펌프 작동 |
 | `pump_node_INA219_v24.ino` | 수계 | 펌프성능시험 실행 명령어(P) 작동 택트스위치 설치 |
+| `pump_node_INA219_v25.ino` | 수계 | 워치독 로직 삽입 |
 | `gas_node.ino` | 가스계 (CO2) | HX711, NVS 기반 캘리브레이션 저장 |
 | `gas_node_v2.ino` | 가스계 (CO2) | 캘리브레이션을 통해 실측 중량과 측정 중량 대조 후 무게 상수 대입 |
 | `gas_node_v3.ino` | 가스계 (CO2) | 영점(TARE), 기준중량저장(SET_INITIAL) 실행 명령어 작동 택트스위치 설치 |
+| `gas_node_v4.ino` | 가스계 (CO2) | 워치독 로직 삽입 |
 | `extinguisher_leafnode.ino` | 소화기 리프노드 ×4 | ESP32-C3, MPU6500+딥슬립, ESP-NOW 송신 |
 | `extinguisher_gateway.ino` | 소화기 게이트웨이 | ESP-NOW 수신 → WiFi/UDP 중계, 상시전원 |
 | `extinguisher_gateway_v2.ino` | 소화기 게이트웨이 | 점검모드 신설 및 작동 택트스위치 설치 |
+| `extinguisher_gateway_v3.ino` | 소화기 게이트웨이 | 워치독 로직 삽입 |
 | `evac_light_node.ino` | 유도등 | CD74HC4067 멀티플렉서, 데모모드(20분→45초 압축) 포함 |
 | `evac_light_node_v2.ino` | 유도등 | 아날로그 멀티플렉서 및 조도센서 사용 삭제 |
 | `evac_light_node_v3.ino` | 유도등 | 방전시험을 거치며 얻은 결과를 기준으로 수정 |
 | `evac_light_node_v4.ino` | 유도등 | 방전시험(s), 데모시험(d) 실행 명령어 작동 택트스위치 설치 |
+| `evac_light_node_v5.ino` | 유도등 | 워치독 로직 삽입 |
 
 ## bulchimbeon_sw/ — 라즈베리파이 서버 소프트웨어 (Python)
 UDP 수신 → SQLite 저장 → 규칙/회귀/AI 3계층 판정 → 부저·LCD·대시보드 출력까지, 라즈베리파이에서 상시 구동되는 서버 전체입니다. AI는 정확히 2곳(수계 주펌프 파형 분류, 자탐2 비화재보 판별)에만 쓰고 나머지 설비(자탐1/가스계/유도등/소화기)는 전부 통계·규칙 기반입니다. 구조·실행 순서·설계 결정 배경은 `bulchimbeon_sw/README.md`에 자세히 정리되어 있습니다.
@@ -200,7 +206,7 @@ UDP 수신 → SQLite 저장 → 규칙/회귀/AI 3계층 판정 → 부저·LCD
 
 | 엣지 | 상태 | 요약 |
 |---|---|---|
-| 광전식 | ✅ 실험 완료(최종본) | normal/smoking/incense/heat/fire 5클래스 64세션 통합 + 최종분석보고서 |
+| 광전식 | 실험 완료(최종본) | normal/smoking/incense/heat/fire 5클래스 64세션 통합 + 최종분석보고서 |
 | 차동식 | 실험 5종 완료 | 온도 상승률 판정 임계값 확정(캘리브레이션 상수 포함) |
 | 가스계 | 캘리브레이션 완료 | 로드셀 무게손실 회귀검증(3.85일 로그) |
 | 수계 | 채집 완료 | 충압펌프 4클래스(정상/유량저하/공회전/기동실패) 분류용 데이터 |
