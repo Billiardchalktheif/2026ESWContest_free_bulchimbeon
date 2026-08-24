@@ -98,7 +98,6 @@
         {% if water_pump.heartbeat_main %}<span class="hb {{ 'online' if water_pump.heartbeat_main.online else 'offline' }}">{{ 'online' if water_pump.heartbeat_main.online else 'offline' }}</span>{% endif %}
       </div>
       <div class="row">판정 결과: <b>{{ water_pump.main_shown_label or "N/A" }}</b></div>
-      <div class="row">confidence: {{ "%.1f%%"|format(water_pump.main.confidence * 100) if water_pump.main.confidence is not none else "N/A" }}</div>
       {% else %}
       <div class="row">데이터 없음</div>
       {% endif %}
@@ -115,7 +114,7 @@
       {% endif %}
     </div>
     <div class="card">
-      <h2>최근 파형 분류 이력 (최대 30개)</h2>
+      <h2>학습 데이터 클래스 분포 (충압펌프, 총 {{ water_pump.label_counts.values() | sum }}개)</h2>
       <canvas id="pumpHistoryChart"></canvas>
       <table>
         <tr><th>정상운전</th><th>공회전</th><th>유량저하</th><th>기동실패</th></tr>
@@ -227,7 +226,7 @@
     data: {
       labels: ['정상운전', '공회전', '유량저하', '기동실패'],
       datasets: [{
-        label: '최근 판정 분포',
+        label: '학습 데이터 분포',
         data: [
           {{ water_pump.label_counts.normal }},
           {{ water_pump.label_counts.dryrun }},

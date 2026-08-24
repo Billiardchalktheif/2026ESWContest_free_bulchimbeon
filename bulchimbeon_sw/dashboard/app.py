@@ -209,32 +209,30 @@ def get_water_pump_card(conn, heartbeats):
         "SELECT * FROM water_pump_log WHERE pump_type='jockey' ORDER BY id DESC LIMIT 1"
     ).fetchone()
 
-    # 2026-08-23: 'main' -> 'jockey'로 정정 + 라벨 어휘를 실제 학습 클래스에 맞춤.
-    # 주펌프는 v13 이후 predicted_label이 절대 안 채워지므로(INA219 제거) 이 이력
-    # 표는 애초에 잘못된 대상을 보고 있었다. 실제 클래스 어휘는 pump_performance_test.py의
-    # VALVE_STATE_TO_LABEL(주펌프 밸브시험용, normal_operation/stall_operation/...)과
-    # 이름이 완전히 다르다 — data/수계 엣지/combined_all_labeled.csv 실측 확인:
-    # normal/low_flow/dryrun/start_fail 4클래스(체절 없음, 충압펌프 특성상 배제).
-    history_rows = conn.execute(
-        """SELECT ts, COALESCE(predicted_label, label) AS shown_label, confidence
-           FROM water_pump_log WHERE pump_type='jockey' AND COALESCE(predicted_label, label) IS NOT NULL
-           ORDER BY id DESC LIMIT 30"""
+    # 2026-08-23: "최근 이력"이 아니라 "학습 데이터 전체 분포"로 재정의.
+    # label(학습용 정답)과 predicted_label(실시간 AI 추론)은 절대 같은 행에
+    # 같이 채워지지 않는다(임포트 스크립트는 label만 채우고 predicted_label은
+    # 비워둠, 실시간 추론은 반대) — 그래서 label IS NOT NULL만으로 학습
+    # 데이터만 정확히 걸러낼 수 있다. label_source='manual'인 벤치 실험
+    # 데이터라 "최근 N개"라는 시간 개념 자체가 의미 없으므로 LIMIT을 없애고
+    # 전체를 센다.
+    label_rows = conn.execute(
+        """SELECT label FROM water_pump_log
+           WHERE pump_type='jockey' AND label IS NOT NULL"""
     ).fetchall()
-    history = list(reversed(history_rows))
 
     label_counts = {
         "normal": 0, "dryrun": 0,
         "low_flow": 0, "start_fail": 0,
     }
-    for r in history:
-        if r["shown_label"] in label_counts:
-            label_counts[r["shown_label"]] += 1
+    for r in label_rows:
+        if r["label"] in label_counts:
+            label_counts[r["label"]] += 1
 
     return {
         "main": dict(main) if main else None,
         "main_shown_label": (main["predicted_label"] or main["label"]) if main else None,
         "jockey": dict(jockey) if jockey else None,
-        "history": [dict(r) for r in history],
         "label_counts": label_counts,
         "heartbeat_main": heartbeats.get(main["node_id"]) if main else None,
         "heartbeat_jockey": heartbeats.get(jockey["node_id"]) if jockey else None,
