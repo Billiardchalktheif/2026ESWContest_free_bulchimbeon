@@ -101,7 +101,7 @@ HEARTBEAT_TIMEOUT_SEC = {
     "water_pump": 90,
     "extinguisher": 90,
     "evac_light": 90,
-    "gas": 130000,  # 가스 ESP32의 실배포 기준 SEND_INTERVAL_MS(86400000ms=1일)의 1.5배 여유.
+    "gas": 90 if DEMO_MODE else 130000,  # 가스 ESP32의 실배포 기준 SEND_INTERVAL_MS(86400000ms=1일)의 1.5배 여유.
                      # ⚠️ 가스 노드를 시연용으로 짧은 주기(예: 5초)로 바꿔놔도 이 값은 실배포
                      # 기준 그대로 둘 것 — 시연 중엔 90초보다 훨씬 자주 오므로 여유 있는
                      # 130000초 기준을 그대로 써도 online으로 정상 표시된다(esp32/gas_node/
