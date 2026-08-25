@@ -288,10 +288,10 @@ def get_extinguisher_cards(conn, heartbeats):
         # 내용연수는 extinguisher_log(패킷마다 새 행)가 아니라 extinguisher_config(노드당 1행,
         # 대시보드에서 입력)에서 가져온다 — 이유는 schema.sql의 테이블 주석 참고.
         config_row = conn.execute(
-            "SELECT manufacture_date FROM extinguisher_config WHERE node_id=?", (node_id,)
+            "SELECT expiry_date FROM extinguisher_config WHERE node_id=?", (node_id,)
         ).fetchone()
-        manufacture_date = config_row["manufacture_date"] if config_row else None
-        lifespan_status, days_remaining = check_extinguisher_lifespan(manufacture_date)
+        expiry_date = config_row["expiry_date"] if config_row else None
+        lifespan_status, days_remaining = check_extinguisher_lifespan(expiry_date)
 
         if days_remaining is None:
             dday_label = None
@@ -308,7 +308,7 @@ def get_extinguisher_cards(conn, heartbeats):
             "status": r["status"],
             "status_label": EXTINGUISHER_STATUS_LABELS.get(r["status"], r["status"]),
             "heartbeat": heartbeats.get(node_id),
-            "manufacture_date": manufacture_date,
+            "expiry_date": expiry_date,
             "lifespan_status": lifespan_status,     # 미입력 / 정상 / 교체 임박 / 만료
             "dday_label": dday_label,                # "D-47" / "D+15" / None(미입력)
         })
@@ -407,31 +407,31 @@ def fire_alarm_nuisance_demo_trigger():
     return jsonify({"ok": True, "node_id": node_id})
 
 
-@app.route("/extinguisher/set_manufacture_date", methods=["POST"])
-def extinguisher_set_manufacture_date():
-    """소화기 내용연수(10년) 계산용 제조일자를 노드당 1개씩 저장/수정한다.
+@app.route("/extinguisher/set_expiry_date", methods=["POST"])
+def extinguisher_set_expiry_date():
+    """소화기 내용연수 만료일자를 노드당 1개씩 저장/수정한다.
     extinguisher_log가 아니라 extinguisher_config에 upsert한다 — 이유는 schema.sql 참고."""
     node_id = request.form.get("node_id")
-    manufacture_date = request.form.get("manufacture_date")
+    expiry_date = request.form.get("expiry_date")
 
     if not node_id:
         return jsonify({"ok": False, "error": "node_id 누락"}), 400
     try:
-        datetime.strptime(manufacture_date, "%Y-%m-%d")
+        datetime.strptime(expiry_date, "%Y-%m-%d")
     except (ValueError, TypeError):
-        return jsonify({"ok": False, "error": "manufacture_date는 YYYY-MM-DD 형식이어야 함"}), 400
+        return jsonify({"ok": False, "error": "expiry_date는 YYYY-MM-DD 형식이어야 함"}), 400
 
     conn = get_db()
     try:
         conn.execute(
-            """INSERT INTO extinguisher_config (node_id, manufacture_date) VALUES (?, ?)
-               ON CONFLICT(node_id) DO UPDATE SET manufacture_date=excluded.manufacture_date""",
-            (node_id, manufacture_date),
+            """INSERT INTO extinguisher_config (node_id, expiry_date) VALUES (?, ?)
+               ON CONFLICT(node_id) DO UPDATE SET expiry_date=excluded.expiry_date""",
+            (node_id, expiry_date),
         )
         conn.commit()
     finally:
         conn.close()
-    return jsonify({"ok": True, "node_id": node_id, "manufacture_date": manufacture_date})
+    return jsonify({"ok": True, "node_id": node_id, "expiry_date": expiry_date})
 
 
 if __name__ == "__main__":

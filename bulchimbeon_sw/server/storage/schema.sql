@@ -132,7 +132,7 @@ CREATE TABLE IF NOT EXISTS extinguisher_log (
 -- 설정을 담는 별도 테이블로 분리했다(자탐1의 LOOP_FIXED_OFFSET_OHM과 같은 "노드별 고정값" 성격).
 CREATE TABLE IF NOT EXISTS extinguisher_config (
     node_id TEXT PRIMARY KEY,
-    manufacture_date TEXT   -- "YYYY-MM-DD" 형식, 소화기 라벨의 제조일자. 미입력이면 NULL.
+    expiry_date TEXT   -- "YYYY-MM-DD" 형식, 소화기 라벨의 내용연수 만료일자. 미입력이면 NULL.
 );
 
 CREATE TABLE IF NOT EXISTS evac_light_log (
