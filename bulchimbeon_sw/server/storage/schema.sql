@@ -126,6 +126,15 @@ CREATE TABLE IF NOT EXISTS extinguisher_log (
     status TEXT DEFAULT 'normal'   -- normal / moved(1차플래그) / missing(이탈확정)
 );
 
+-- 소화기 내용연수(10년) 관리용 — 제조일자는 패킷마다 오는 값이 아니라 노드당 한 번만
+-- 대시보드에서 입력해두는 고정값이라 extinguisher_log(패킷마다 새 행 추가)에 컬럼을 얹으면
+-- 다음 패킷이 올 때 최신 행 기준 표시에서 값이 비어보이는 문제가 생긴다. 그래서 노드별
+-- 설정을 담는 별도 테이블로 분리했다(자탐1의 LOOP_FIXED_OFFSET_OHM과 같은 "노드별 고정값" 성격).
+CREATE TABLE IF NOT EXISTS extinguisher_config (
+    node_id TEXT PRIMARY KEY,
+    manufacture_date TEXT   -- "YYYY-MM-DD" 형식, 소화기 라벨의 제조일자. 미입력이면 NULL.
+);
+
 CREATE TABLE IF NOT EXISTS evac_light_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ts REAL NOT NULL,

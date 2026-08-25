@@ -32,6 +32,7 @@ v7 폴더 재편으로 tamper_detection.py에서 이 위치(server/judge/rules.p
 import sqlite3
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
@@ -39,6 +40,39 @@ from dispatch.lcd_buzzer_output import trigger_alert  # noqa: E402
 
 ACCEL_EVENT_THRESHOLD = 15.0   # m/s^2 — 정지 상태 중력가속도(~9.8)보다 충분히 큰 값, 실측 후 튜닝
 CONFIRM_WINDOW_SEC = 60         # 오탐 필터 대기시간(§3)
+
+# ---------------------------------------------------------------------------
+# 소화기 내용연수(10년) 판정 — 이탈감지(위 evaluate_tamper)와는 완전히 별개 축이다.
+# 출처: 소방시설등 점검관리 매뉴얼 1-A-008 "수동식 분말소화기 내용연수(10년) 적정 여부".
+# 이탈감지는 "지금 그 자리에 있는가"를 보고, 이 함수는 "그 소화기 자체가 아직
+# 쓸 수 있는 연식인가"를 본다 — 센서 없이 날짜 계산만으로 되는 저비용 확장.
+# ---------------------------------------------------------------------------
+EXTINGUISHER_SERVICE_YEARS = 10   # 소방시설등 점검관리 매뉴얼 1-A-008 기준, 법정 고정값
+EXTINGUISHER_WARNING_WINDOW_DAYS = 180  # 만료 6개월 전부터 "교체 임박" — 팀 조정 가능한 placeholder
+
+
+def check_extinguisher_lifespan(manufacture_date_str, service_years: int = EXTINGUISHER_SERVICE_YEARS):
+    """
+    소화기 내용연수(10년) 판정.
+
+    manufacture_date_str: "YYYY-MM-DD" 형식 (소화기 라벨의 제조일자). None/빈값이면 미입력으로 처리.
+    반환값: (상태문자열, 남은일수)
+      상태: "미입력" / "정상" / "교체 임박" / "만료"
+      남은일수: 미입력이면 None, 그 외엔 int (음수면 만료 후 경과일수)
+    """
+    if not manufacture_date_str:
+        return "미입력", None
+
+    mfg_date = datetime.strptime(manufacture_date_str, "%Y-%m-%d")
+    expiry_date = mfg_date.replace(year=mfg_date.year + service_years)
+    days_remaining = (expiry_date - datetime.now()).days
+
+    if days_remaining <= 0:
+        return "만료", days_remaining
+    elif days_remaining <= EXTINGUISHER_WARNING_WINDOW_DAYS:
+        return "교체 임박", days_remaining
+    else:
+        return "정상", days_remaining
 
 
 def evaluate_tamper(conn: sqlite3.Connection, node_id: str, row_id: int,

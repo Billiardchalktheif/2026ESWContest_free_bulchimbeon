@@ -10,6 +10,7 @@
 import sqlite3
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
@@ -20,6 +21,7 @@ from pump_performance_test import (  # noqa: E402
     mark_valve_state_manual, RATED_FLOW_LPM, RATED_PRESSURE_KPA,
 )
 from judge.regression import EVAC_MIN_DISCHARGE_MIN  # noqa: E402
+from judge.rules import check_extinguisher_lifespan  # noqa: E402
 from judge.nuisance_baseline import request_demo_trigger  # noqa: E402
 from config import DB_PATH, LOOP_FIXED_OFFSET_OHM, DEMO_MODE, is_node_online  # noqa: E402
 
@@ -281,14 +283,34 @@ def get_extinguisher_cards(conn, heartbeats):
     ).fetchall()
     cards = []
     for r in rows:
+        node_id = r["node_id"]
+
+        # 내용연수는 extinguisher_log(패킷마다 새 행)가 아니라 extinguisher_config(노드당 1행,
+        # 대시보드에서 입력)에서 가져온다 — 이유는 schema.sql의 테이블 주석 참고.
+        config_row = conn.execute(
+            "SELECT manufacture_date FROM extinguisher_config WHERE node_id=?", (node_id,)
+        ).fetchone()
+        manufacture_date = config_row["manufacture_date"] if config_row else None
+        lifespan_status, days_remaining = check_extinguisher_lifespan(manufacture_date)
+
+        if days_remaining is None:
+            dday_label = None
+        elif days_remaining >= 0:
+            dday_label = f"D-{days_remaining}"
+        else:
+            dday_label = f"D+{abs(days_remaining)}"  # 만료일 이후 경과일수
+
         cards.append({
-            "node_id": r["node_id"],
+            "node_id": node_id,
             "zone": r["zone"],
             "accel_magnitude": r["accel_magnitude"],
             "gateway_id": r["gateway_id"],
             "status": r["status"],
             "status_label": EXTINGUISHER_STATUS_LABELS.get(r["status"], r["status"]),
-            "heartbeat": heartbeats.get(r["node_id"]),
+            "heartbeat": heartbeats.get(node_id),
+            "manufacture_date": manufacture_date,
+            "lifespan_status": lifespan_status,     # 미입력 / 정상 / 교체 임박 / 만료
+            "dday_label": dday_label,                # "D-47" / "D+15" / None(미입력)
         })
     return cards
 
@@ -383,6 +405,33 @@ def fire_alarm_nuisance_demo_trigger():
     node_id = request.form.get("node_id", "fire_zone_photoelectric_01")
     request_demo_trigger(node_id)
     return jsonify({"ok": True, "node_id": node_id})
+
+
+@app.route("/extinguisher/set_manufacture_date", methods=["POST"])
+def extinguisher_set_manufacture_date():
+    """소화기 내용연수(10년) 계산용 제조일자를 노드당 1개씩 저장/수정한다.
+    extinguisher_log가 아니라 extinguisher_config에 upsert한다 — 이유는 schema.sql 참고."""
+    node_id = request.form.get("node_id")
+    manufacture_date = request.form.get("manufacture_date")
+
+    if not node_id:
+        return jsonify({"ok": False, "error": "node_id 누락"}), 400
+    try:
+        datetime.strptime(manufacture_date, "%Y-%m-%d")
+    except (ValueError, TypeError):
+        return jsonify({"ok": False, "error": "manufacture_date는 YYYY-MM-DD 형식이어야 함"}), 400
+
+    conn = get_db()
+    try:
+        conn.execute(
+            """INSERT INTO extinguisher_config (node_id, manufacture_date) VALUES (?, ?)
+               ON CONFLICT(node_id) DO UPDATE SET manufacture_date=excluded.manufacture_date""",
+            (node_id, manufacture_date),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return jsonify({"ok": True, "node_id": node_id, "manufacture_date": manufacture_date})
 
 
 if __name__ == "__main__":
