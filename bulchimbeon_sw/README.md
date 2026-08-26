@@ -43,6 +43,9 @@ bulchimbeon_sw/
 ├── dashboard/
 │   ├── app.py                # Flask 대시보드 (+ 수계 밸브 수동 트리거 라우트)
 │   └── templates/index.html  # 5개 설비 카드 + heartbeat + 자탐2 AI 판정 + 성능시험 대조
+├── app_api/
+│   └── inspection_api.py     # 네이티브 앱(Flutter) 연동용 FastAPI — 설비 체크리스트 조회 + 점검기록 등록
+│                              # (점검이력은 현재 파이썬 메모리 리스트라 서버 재시작 시 소실 — 영구 저장 미구현)
 └── esp32/
     ├── pump_node/                     # 수계 (충압+주펌프+성능시험, GPIO34/35/25/26/32 — 릴레이 2채널)
     ├── fire_alarm_differential_node/  # 자탐1: 차동식구역 (TS0202 온도 dT/dt, 규칙 기반)

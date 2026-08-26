@@ -99,12 +99,14 @@ UDP 수신 → SQLite 저장 → 규칙/회귀/AI 3계층 판정 → 부저·LCD
 - `server/` — `main.py`(실행 진입점), `receiver/`(UDP 수신), `storage/`(SQLite 스키마·마이그레이션), `judge/`(규칙·회귀·AI 판정 로직), `dispatch/`(부저+LCD 출력)
 - `ml/` — 수계 파형 분류기·자탐2 비화재보 판별기 학습 스크립트, 예측 정확도(MAE) 검증
 - `dashboard/` — Flask 대시보드(`app.py`) + 템플릿
+- `app_api/` — 네이티브 앱(Flutter) 연동용 FastAPI 서버(`inspection_api.py`). 설비 체크리스트 조회 + 점검기록 등록 API 제공 (점검이력 영구 저장은 미구현, 앱 쪽 `app/네이비브앱_결선_발전방향.md`에 후속 작업으로 명시됨)
 - `simulate/` — 더미 데이터 생성기, 실측 라벨 데이터 DB 반영 스크립트, 판정 로직 검증 스크립트
 - `requirements.txt` — Python 의존성
 
 ## app/ — 네이티브 앱(Flutter) 개발
 안드로이드 기준 네이티브 앱. 대시보드 외 알림/QR조회/PDF리포트 등 출력 채널을 담당합니다.
 
+- `개발_코드/` — Flutter 앱 실제 소스. `main.dart`, `home_screen.dart`(설비 상태 리스트), `equipment_detail_screen.dart`(설비 상세), `alerts_screen.dart`(알림), `scanner_screen.dart`(QR 스캔), `settings_screen.dart`(설정+PDF 리포트), `pubspec.yaml`, `AndroidManifest.xml`, `network_security_config.xml`
 - `네이티브앱_쉬운설명.md` — 네이티브 앱·Flutter가 뭔지 비유로 풀어쓴 개념 입문 자료
 - `네이티브앱_개발가이드.md` — 화면 구성, API 연동 목록(`/api/status` 등), 기능별 구현 순서 정리
 - `처음부터_시작하기_Windows.md` — Flutter 개발환경 설치 가이드 (Windows)
@@ -113,6 +115,7 @@ UDP 수신 → SQLite 저장 → 규칙/회귀/AI 3계층 판정 → 부저·LCD
 - `라즈베리파이_연동_가이드.md` — Flutter 앱을 라즈베리파이 서버(`api.py`, 5001포트)와 연동하는 단계별(STEP 0~) 실행 가이드
 - `raspberry_pi_integration_plan.md` — 라즈베리파이·QR코드 연동 개발 마일스톤(단계별 작업 계획서)
 - `앱개발_과정.md` - Flutter를 이용한 앱 개발 및 코드 (틀 완성 + QR스캔·PDF리포트 기능 완료, 서버 연동 대기 중)
+- `네이비브앱_결선_발전방향.md` — 예선 제출(9/3) 기준 QR→설비상세→점검완료→PDF 풀 플로우는 완성. 시간상 예선에서 스킵하고 결선에서 이어갈 6개 항목 정리(앱 아이콘 커스텀, PDF 한글 폰트, 점검이력 영구 저장, 홈화면 실시간 폴링 등)
 
 ## simulation/ — 하드웨어 시뮬레이션 (Wokwi)
 실물 부품 도착 전, 회로·로직을 미리 검증한 시뮬레이션입니다.
