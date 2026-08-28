@@ -5,16 +5,16 @@
 <title>불침번 대시보드</title>
 <script src="{{ url_for('static', filename='chart.min.js') }}"></script>
 <style>
-  body { font-family: "Malgun Gothic", sans-serif; background: #f2f3f5; margin: 0; padding: 16px; }
-  h1 { font-size: 20px; margin: 0 0 4px; }
-  .subtitle { color: #666; font-size: 13px; margin-bottom: 16px; }
+  body { font-family: "Malgun Gothic", sans-serif; background: #f2f3f5; margin: 0; padding: 8px; }
+  h1 { font-size: 16px; margin: 0 0 2px; }
+  .subtitle { color: #666; font-size: 11px; margin-bottom: 8px; }
   /* 영상 편집용 — 카드를 4열 고정 그리드의 정사각형으로 통일한다(기존엔 섹션마다
      auto-fit 그리드에 세로로 긴 카드가 섞여있어 편집 화면 비율이 들쭉날쭉했다).
      내용이 정사각형 안에 다 안 들어가는 카드(자탐1 점검이력, 성능시험 차트 등)는
      잘라내는 대신 카드 안에서만 세로 스크롤되게 한다 — 정보 손실 없이 비율만 맞춘다. */
-  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-  .card { background: #fff; border-radius: 8px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-          border-left: 6px solid #ccc; aspect-ratio: 1 / 1; overflow-y: auto; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .card { background: #fff; border-radius: 8px; padding: 8px 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+          border-left: 5px solid #ccc; aspect-ratio: 4 / 3; overflow-y: auto; }
   .card.blank { visibility: hidden; box-shadow: none; border: none; background: transparent; } /* 스케치의 빈 칸 자리맞춤용 */
   .card h2 { font-size: 15px; margin: 0 0 8px; display: flex; justify-content: space-between; align-items: center; }
   .card .row { font-size: 13px; color: #333; margin: 2px 0; }
@@ -30,12 +30,12 @@
   .card.status-normal { border-left-color: #2e9e44; }
   .card.status-caution, .card.status-low, .card.status-moved, .card.status-warning { border-left-color: #e0a11c; }
   .card.status-alarm, .card.status-critical, .card.status-missing { border-left-color: #d9362e; }
-  .section-title { font-size: 16px; margin: 24px 0 8px; color: #444; }
+  .section-title { font-size: 14px; margin: 12px 0 4px; color: #444; }
   /* 열(칼럼) 그룹 라벨 — 전체 폭 한 줄이 아니라, 그리드 안에 실제로 배치해서 그
      칼럼들 바로 위에만 오도록 grid-column: span으로 폭을 맞춘다. 자탐/가스계처럼
      같은 열을 쓰지만 다른 행에 있는 경우, 행마다 별도로 헤더를 넣어서 절대
      서로 다른 구역 이름이 하나로 합쳐지지 않게 한다. */
-  .col-group-label { grid-column: span 2; font-size: 15px; font-weight: bold; color: #444; padding: 2px 4px 4px; }
+  .col-group-label { grid-column: span 2; font-size: 13px; font-weight: bold; color: #444; padding: 1px 4px 2px; }
   .col-group-label.span1 { grid-column: span 1; }
   .col-group-label.blank { visibility: hidden; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
