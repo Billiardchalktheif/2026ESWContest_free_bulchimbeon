@@ -8,9 +8,14 @@
   body { font-family: "Malgun Gothic", sans-serif; background: #f2f3f5; margin: 0; padding: 16px; }
   h1 { font-size: 20px; margin: 0 0 4px; }
   .subtitle { color: #666; font-size: 13px; margin-bottom: 16px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  /* 영상 편집용 — 카드를 4열 고정 그리드의 정사각형으로 통일한다(기존엔 섹션마다
+     auto-fit 그리드에 세로로 긴 카드가 섞여있어 편집 화면 비율이 들쭉날쭉했다).
+     내용이 정사각형 안에 다 안 들어가는 카드(자탐1 점검이력, 성능시험 차트 등)는
+     잘라내는 대신 카드 안에서만 세로 스크롤되게 한다 — 정보 손실 없이 비율만 맞춘다. */
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
   .card { background: #fff; border-radius: 8px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-          border-left: 6px solid #ccc; }
+          border-left: 6px solid #ccc; aspect-ratio: 1 / 1; overflow-y: auto; }
+  .card.blank { visibility: hidden; box-shadow: none; border: none; background: transparent; } /* 스케치의 빈 칸 자리맞춤용 */
   .card h2 { font-size: 15px; margin: 0 0 8px; display: flex; justify-content: space-between; align-items: center; }
   .card .row { font-size: 13px; color: #333; margin: 2px 0; }
   .card .row b { color: #000; }
@@ -38,7 +43,7 @@
   <h1>불침번 — 상시 소방설비 점검 대시보드</h1>
   <div class="subtitle">5초마다 자동 새로고침 · node_id 배지가 online/offline 표시</div>
 
-  <div class="section-title">자탐 (루프 저항 2층 판정: 절대임계값+추세, 공통 + 구역별 판정)</div>
+  <div class="section-title">자탐 · 수계 · 가스계 (통합 현황판 — 영상 편집용 4열 정사각형 배치)</div>
   <div class="grid">
     {% for c in fire_alarm_cards %}
     <div class="card status-{{ c.status }}">
@@ -86,10 +91,7 @@
     {% else %}
     <div class="card">데이터 없음</div>
     {% endfor %}
-  </div>
 
-  <div class="section-title">수계 (주펌프 파형 분류 · 충압펌프 기동주기)</div>
-  <div class="grid">
     <div class="card">
       <h2>주펌프 최근 판정</h2>
       {% if water_pump.main %}
@@ -112,6 +114,22 @@
       <div class="row">데이터 없음</div>
       {% endif %}
     </div>
+
+    {% for c in gas_cards %}
+    <div class="card">
+      <h2>{{ c.zone }}
+        {% if c.heartbeat %}<span class="hb {{ 'online' if c.heartbeat.online else 'offline' }}">{{ 'online' if c.heartbeat.online else 'offline' }}</span>{% endif %}
+      </h2>
+      <div class="row">node_id: <b>{{ c.node_id }}</b> · 종류: {{ c.gas_type }}</div>
+      <div class="row">현재 중량: <b>{{ "%.0f"|format(c.weight_g) }} g</b> / 초기 {{ "%.0f"|format(c.initial_weight_g) }} g</div>
+      <div class="row">손실률: {{ "%.2f%%"|format(c.loss_pct) if c.loss_pct is not none else "계산중" }}</div>
+      <div class="row">임계 손실률 도달 예상: <b>{{ "%.1f일"|format(c.predicted_days_to_5pct) if c.predicted_days_to_5pct is not none else "계산중" }}</b></div>
+    </div>
+    {% else %}
+    <div class="card">데이터 없음</div>
+    {% endfor %}
+    <div class="card blank"></div><!-- 스케치상 가스계 옆 빈 칸 자리맞춤 -->
+
     <div class="card">
       <h2>학습 데이터 클래스 분포 (충압펌프, 총 {{ water_pump.label_counts.values() | sum }}개)</h2>
       <canvas id="pumpHistoryChart"></canvas>
@@ -143,24 +161,7 @@
     </div>
   </div>
 
-  <div class="section-title">가스계 (CO2/할론 용기 중량)</div>
-  <div class="grid">
-    {% for c in gas_cards %}
-    <div class="card">
-      <h2>{{ c.zone }}
-        {% if c.heartbeat %}<span class="hb {{ 'online' if c.heartbeat.online else 'offline' }}">{{ 'online' if c.heartbeat.online else 'offline' }}</span>{% endif %}
-      </h2>
-      <div class="row">node_id: <b>{{ c.node_id }}</b> · 종류: {{ c.gas_type }}</div>
-      <div class="row">현재 중량: <b>{{ "%.0f"|format(c.weight_g) }} g</b> / 초기 {{ "%.0f"|format(c.initial_weight_g) }} g</div>
-      <div class="row">손실률: {{ "%.2f%%"|format(c.loss_pct) if c.loss_pct is not none else "계산중" }}</div>
-      <div class="row">임계 손실률 도달 예상: <b>{{ "%.1f일"|format(c.predicted_days_to_5pct) if c.predicted_days_to_5pct is not none else "계산중" }}</b></div>
-    </div>
-    {% else %}
-    <div class="card">데이터 없음</div>
-    {% endfor %}
-  </div>
-
-  <div class="section-title">소화기 (이탈/도난 감지 — 가속도 + 게이트웨이 연결상태)</div>
+  <div class="section-title">소화기 · 유도등 (통합 현황판 — 영상 편집용 4열 정사각형 배치)</div>
   <div class="grid">
     {% for c in extinguisher_cards %}
     <div class="card status-{{ c.status }}">
@@ -195,10 +196,7 @@
     {% else %}
     <div class="card">데이터 없음</div>
     {% endfor %}
-  </div>
 
-  <div class="section-title">유도등 (배터리 전압 — 법정 최소 작동시간 {{ evac_min_discharge_min }}분 기준)</div>
-  <div class="grid">
     {% for c in evac_light_cards %}
     <div class="card status-{{ c.last_test_status or 'normal' }}">
       <h2>{{ c.zone }}
