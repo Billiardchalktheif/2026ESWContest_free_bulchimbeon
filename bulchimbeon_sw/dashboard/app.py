@@ -357,6 +357,19 @@ def get_evac_light_cards(conn, heartbeats):
             "demo_mode": bool(r["demo_mode"]),
             "heartbeat": heartbeats.get(node_id),
         })
+
+    # 영상 편집용 카드 배치 순서 — 실제 우선순위/중요도와 무관하게, 소화기 카드 4개와
+    # 나란히 놓았을 때 스케치와 맞도록 1층→3층→2층→4층 순으로 재배열한다. 목록에 없는
+    # zone(노드 이름이 바뀌거나 늘어난 경우)은 안전하게 뒤쪽에 원래 순서 그대로 붙는다.
+    _EVAC_DISPLAY_ORDER = ["1층 복도", "3층 복도", "2층 복도", "4층 복도"]
+
+    def _evac_sort_key(card):
+        try:
+            return _EVAC_DISPLAY_ORDER.index(card["zone"])
+        except ValueError:
+            return len(_EVAC_DISPLAY_ORDER)
+
+    cards.sort(key=_evac_sort_key)
     return cards
 
 

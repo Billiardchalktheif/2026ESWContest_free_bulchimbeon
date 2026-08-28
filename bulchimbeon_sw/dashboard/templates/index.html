@@ -43,7 +43,7 @@
   <h1>불침번 — 상시 소방설비 점검 대시보드</h1>
   <div class="subtitle">5초마다 자동 새로고침 · node_id 배지가 online/offline 표시</div>
 
-  <div class="section-title">자탐 · 수계 · 가스계 (통합 현황판 — 영상 편집용 4열 정사각형 배치)</div>
+  <div class="section-title">자탐 (루프 저항 2층 판정: 절대임계값+추세, 공통 + 구역별 판정) · 수계 (주펌프 파형 분류 · 충압펌프 기동주기) · 가스계 (CO2/할론 용기 중량)</div>
   <div class="grid">
     {% for c in fire_alarm_cards %}
     <div class="card status-{{ c.status }}">
@@ -161,7 +161,7 @@
     </div>
   </div>
 
-  <div class="section-title">소화기 · 유도등 (통합 현황판 — 영상 편집용 4열 정사각형 배치)</div>
+  <div class="section-title">소화기 (이탈/도난 감지 — 가속도 + 게이트웨이 연결상태) · 유도등 (배터리 전압 — 법정 최소 작동시간 {{ evac_min_discharge_min }}분 기준)</div>
   <div class="grid">
     {% for c in extinguisher_cards %}
     <div class="card status-{{ c.status }}">
