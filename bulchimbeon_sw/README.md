@@ -104,7 +104,8 @@ python ml/evaluate_predictions.py
       (`server/judge/regression.py`의 `evaluate_loop_resistance`). raw 센서값은
       R_loop 고정저항(안전 전류 확보용) + 가변저항(열화 시뮬레이션)의 합이라 법정기준과
       스케일이 다른데, 이것도 가스계의 공병중량 차감과 동일한 패턴으로 판정 시점에만
-      `LOOP_FIXED_OFFSET_OHM`(임시값 253Ω, 실측 후 재조정 필요)을 차감해서 보정한다
+      `LOOP_FIXED_OFFSET_OHM`(2026-08-26 실측 재보정값 264Ω, 자탐1/자탐2 raw baseline
+      평균 기준)을 차감해서 보정한다
 - [x] 자탐2 비화재보 판별 — temp_rise_rate/mq2_raw/humidity_pct 3개 feature로
       fire/cooking/normal 분류(RandomForest). "온도상승률 vs 습도상승" 조합이 핵심
       구분점 — 더미데이터로는 완전분리 확인, **실측 검증은 부품 수령 후 최우선 과제**
