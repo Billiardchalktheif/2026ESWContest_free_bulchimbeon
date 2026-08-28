@@ -359,9 +359,9 @@ def get_evac_light_cards(conn, heartbeats):
         })
 
     # 영상 편집용 카드 배치 순서 — 실제 우선순위/중요도와 무관하게, 소화기 카드 4개와
-    # 나란히 놓았을 때 스케치와 맞도록 1층→3층→2층→4층 순으로 재배열한다. 목록에 없는
+    # 나란히 놓았을 때 스케치와 맞도록 1층→2층→3층→4층 순으로 재배열한다. 목록에 없는
     # zone(노드 이름이 바뀌거나 늘어난 경우)은 안전하게 뒤쪽에 원래 순서 그대로 붙는다.
-    _EVAC_DISPLAY_ORDER = ["1층 복도", "3층 복도", "2층 복도", "4층 복도"]
+    _EVAC_DISPLAY_ORDER = ["1층 복도", "2층 복도", "3층 복도", "4층 복도"]
 
     def _evac_sort_key(card):
         try:
@@ -373,6 +373,28 @@ def get_evac_light_cards(conn, heartbeats):
     return cards
 
 
+def get_extinguisher_evac_combined_cards(conn, heartbeats):
+    """
+    영상 편집용 배치 전용 — 소화기 4개(카드)와 유도등 4개(카드)를 한 4열 그리드
+    안에서 행 단위로 번갈아 채운다: 1행 [소화기1,소화기2,유도등1층,유도등2층],
+    2행 [소화기3,소화기4,유도등3층,유도등4층]. get_evac_light_cards()가 이미
+    1→2→3→4층 순으로 정렬해서 반환하므로 그 순서를 그대로 믿고 앞 2개/뒤 2개로
+    자른다. 각 카드 dict에 "kind"(extinguisher/evac)를 붙여서 템플릿이 카드
+    종류별로 다른 필드를 렌더링할 수 있게 한다. 개수가 정확히 4개씩이 아니면
+    인터리브를 포기하고 안전하게 소화기 -> 유도등 순으로 그냥 이어붙인다.
+    """
+    ext = get_extinguisher_cards(conn, heartbeats)
+    evac = get_evac_light_cards(conn, heartbeats)
+    for c in ext:
+        c["kind"] = "extinguisher"
+    for c in evac:
+        c["kind"] = "evac"
+
+    if len(ext) == 4 and len(evac) == 4:
+        return [ext[0], ext[1], evac[0], evac[1], ext[2], ext[3], evac[2], evac[3]]
+    return ext + evac
+
+
 @app.route("/")
 def index():
     conn = get_db()
@@ -382,8 +404,7 @@ def index():
             "fire_alarm_cards": get_fire_alarm_cards(conn, heartbeats),
             "water_pump": get_water_pump_card(conn, heartbeats),
             "gas_cards": get_gas_cards(conn, heartbeats),
-            "extinguisher_cards": get_extinguisher_cards(conn, heartbeats),
-            "evac_light_cards": get_evac_light_cards(conn, heartbeats),
+            "extinguisher_evac_cards": get_extinguisher_evac_combined_cards(conn, heartbeats),
             "evac_min_discharge_min": EVAC_MIN_DISCHARGE_MIN,
         }
     finally:

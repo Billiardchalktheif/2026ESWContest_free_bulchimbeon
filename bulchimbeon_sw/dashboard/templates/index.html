@@ -31,6 +31,13 @@
   .card.status-caution, .card.status-low, .card.status-moved, .card.status-warning { border-left-color: #e0a11c; }
   .card.status-alarm, .card.status-critical, .card.status-missing { border-left-color: #d9362e; }
   .section-title { font-size: 16px; margin: 24px 0 8px; color: #444; }
+  /* 열(칼럼) 그룹 라벨 — 전체 폭 한 줄이 아니라, 그리드 안에 실제로 배치해서 그
+     칼럼들 바로 위에만 오도록 grid-column: span으로 폭을 맞춘다. 자탐/가스계처럼
+     같은 열을 쓰지만 다른 행에 있는 경우, 행마다 별도로 헤더를 넣어서 절대
+     서로 다른 구역 이름이 하나로 합쳐지지 않게 한다. */
+  .col-group-label { grid-column: span 2; font-size: 15px; font-weight: bold; color: #444; padding: 2px 4px 4px; }
+  .col-group-label.span1 { grid-column: span 1; }
+  .col-group-label.blank { visibility: hidden; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
   table th, table td { padding: 4px 6px; border-bottom: 1px solid #eee; text-align: left; }
   canvas { max-height: 180px; }
@@ -43,8 +50,9 @@
   <h1>불침번 — 상시 소방설비 점검 대시보드</h1>
   <div class="subtitle">5초마다 자동 새로고침 · node_id 배지가 online/offline 표시</div>
 
-  <div class="section-title">자탐 (루프 저항 2층 판정: 절대임계값+추세, 공통 + 구역별 판정) · 수계 (주펌프 파형 분류 · 충압펌프 기동주기) · 가스계 (CO2/할론 용기 중량)</div>
   <div class="grid">
+    <div class="col-group-label">자탐</div>
+    <div class="col-group-label">수계</div>
     {% for c in fire_alarm_cards %}
     <div class="card status-{{ c.status }}">
       <h2>{{ c.zone }}
@@ -115,6 +123,10 @@
       {% endif %}
     </div>
 
+    <div class="col-group-label span1">가스계</div>
+    <div class="col-group-label span1 blank"></div>
+    <div class="col-group-label">수계</div>
+
     {% for c in gas_cards %}
     <div class="card">
       <h2>{{ c.zone }}
@@ -161,9 +173,11 @@
     </div>
   </div>
 
-  <div class="section-title">소화기 (이탈/도난 감지 — 가속도 + 게이트웨이 연결상태) · 유도등 (배터리 전압 — 법정 최소 작동시간 {{ evac_min_discharge_min }}분 기준)</div>
   <div class="grid">
-    {% for c in extinguisher_cards %}
+    <div class="col-group-label">소화기</div>
+    <div class="col-group-label">유도등</div>
+    {% for c in extinguisher_evac_cards %}
+    {% if c.kind == 'extinguisher' %}
     <div class="card status-{{ c.status }}">
       <h2>{{ c.zone }} <span class="badge {{ c.status }}">{{ c.status_label }}</span></h2>
       <div class="row">node_id: <b>{{ c.node_id }}</b>
@@ -193,11 +207,7 @@
         <button type="submit" style="font-size:12px;">저장</button>
       </form>
     </div>
-    {% else %}
-    <div class="card">데이터 없음</div>
-    {% endfor %}
-
-    {% for c in evac_light_cards %}
+    {% elif c.kind == 'evac' %}
     <div class="card status-{{ c.last_test_status or 'normal' }}">
       <h2>{{ c.zone }}
         {% if c.last_test_status %}<span class="badge {{ c.last_test_status }}">{{ c.last_test_status }}</span>{% endif %}
@@ -216,6 +226,7 @@
         {% endif %}
       </div>
     </div>
+    {% endif %}
     {% else %}
     <div class="card">데이터 없음</div>
     {% endfor %}
