@@ -43,20 +43,18 @@ bulchimbeon_sw/
 ├── dashboard/
 │   ├── app.py                # Flask 대시보드 (+ 수계 밸브 수동 트리거 라우트)
 │   └── templates/index.html  # 5개 설비 카드 + heartbeat + 자탐2 AI 판정 + 성능시험 대조
-├── app_api/
-│   └── inspection_api.py     # 네이티브 앱(Flutter) 연동용 FastAPI — 설비 체크리스트 조회 + 점검기록 등록
-│                              # (점검이력은 현재 파이썬 메모리 리스트라 서버 재시작 시 소실 — 영구 저장 미구현)
-└── esp32/
-    ├── pump_node/                     # 수계 (충압+주펌프+성능시험, GPIO34/35/25/26/32 — 릴레이 2채널)
-    ├── fire_alarm_differential_node/  # 자탐1: 차동식구역 (TS0202 온도 dT/dt, 규칙 기반)
-    ├── fire_alarm_photoelectric_node/ # 자탐2: 광전식구역 (MQ-2+DHT22, 비화재보 판별 AI)
-    ├── gas_node/                      # 가스계 (HX711)
-    ├── extinguisher_leafnode/         # 소화기 리프노드 (ESP32-C3, MPU6500, ESP-NOW)
-    ├── extinguisher_gateway/          # 소화기 게이트웨이 (ESP-NOW -> WiFi/UDP 중계)
-    └── evac_light_node/               # 유도등 (CD74HC4067 멀티플렉서로 4개 통합)
+└── app_api/
+    └── inspection_api.py     # 네이티브 앱(Flutter) 연동용 FastAPI — 설비 체크리스트 조회 + 점검기록 등록
+                               # (점검이력은 현재 파이썬 메모리 리스트라 서버 재시작 시 소실 — 영구 저장 미구현)
 ```
 
 `db/` 폴더는 v7에서 없어졌다 — DB 파일/스키마는 이제 `server/storage/`에 있다.
+
+**ESP32 펌웨어(.ino)는 이 폴더(`bulchimbeon_sw/`) 밖, 저장소 최상위 `/server/` 폴더에 있다.**
+설비별로 버전 이력이 그대로 남아있는 방식(예: `pump_node_INA219_v25.ino`, `gas_node_v4.ino`,
+`fire_alarm_differential_node_v6.ino` 등)이며, 각 설비의 최신 버전 파일명과 변경 이력은
+저장소 최상위 `README.md`의 표를 참고할 것.
+(설비별 폴더로 재구성하는 안이 논의된 적 있으나 아직 실행되지 않았다 — 실행되면 이 섹션을 갱신할 것)
 
 ## 실행 순서
 
@@ -163,7 +161,7 @@ python ml/evaluate_predictions.py
    재현 시나리오(열풍기/가습기/발연원, `ml/train_nuisance_classifier.py` 상단 참고)가
    실측에서도 실제로 분리되는지 확인. 신호가 겹치면 규칙 기반(습도 임계값 등)으로
    축소하는 대안을 준비해둘 것
-2. **수계 실측 데이터 수집** — `pump_node.ino`의 성능시험(펌프 기동 + 발표자 수동
+2. **수계 실측 데이터 수집** — 최상위 `/server/`의 수계 펌프 펌웨어(현재 `pump_node_INA219_v25.ino`)의 성능시험(펌프 기동 + 발표자 수동
    밸브조작)을 실제 배관에 연결해 `RATED_PRESSURE_KPA`(server/pump_performance_test.py)를
    설치 현장 실측값으로 교체. 압력 자동추정(`VALVE_AUTO_DETECT_*` 상수들)이 실측에서도
    안정적인지 확인하고, 불안정하면 대시보드 수동 트리거 버튼으로 전환
@@ -176,8 +174,11 @@ python ml/evaluate_predictions.py
    - 소화기 이탈(missing) 확정 후 수동 복구 기능 — 현재 미구현(의도된 설계, 보안경보 성격)
    - 수계 성능시험 실행 주기 — 현재 `ENVIRONMENT="testbed"`(6시간 간격)로 설정됨.
      **실배포 전 반드시 `"deployment"`(180일, 법정 종합점검 주기)로 전환**할 것
-     (`server/pump_performance_test.py` + `pump_node.ino`의 `PUMP_TEST_ENVIRONMENT_TESTBED` 매크로)
-   - 가스계 전송주기 — 현재 `esp32/gas_node/gas_node.ino`의 `SEND_INTERVAL_MS`가
+     (`server/pump_performance_test.py` + 저장소 최상위 `/server/` 폴더의 수계 펌프 최신 버전
+     파일(현재 `pump_node_INA219_v25.ino`, 최상위 README 표에서 최신본 확인)의
+     `PUMP_TEST_ENVIRONMENT_TESTBED` 매크로)
+   - 가스계 전송주기 — 현재 저장소 최상위 `/server/` 폴더의 가스계 최신 버전 파일(현재
+     `gas_node_v4.ino`, 최상위 README 표에서 최신본 확인)의 `SEND_INTERVAL_MS`가
      시연/테스트용으로 5000(5초)로 낮춰져 있음. **결선(실배포) 전 반드시
      86400000UL(24시간, 원래 값은 파일에 주석으로 남겨둠)로 복귀**할 것 — 안 잊게
      파일 상단에도 경고 주석을 남겨뒀지만, 결선 체크리스트에도 별도로 체크 항목을
@@ -189,7 +190,7 @@ python ml/evaluate_predictions.py
    - 각종 임계값(가속도 15.0 m/s², 확인대기 60초, ADS1115 션트저항, 정격토출압력 700kPa,
      압력 자동추정 임계 102%/20% 등) 실측 후 재조정 필요 — 전부 파일 상단 상수로 분리해뒀음
 5. ESP32 실물 배선 후 `boot_id`/`seq`/NTP 동기화, **압력센서 저항분압 배선**(0.5~4.5V
-   출력을 그대로 물리면 ESP32 손상 위험, `pump_node.ino` 배선 메모 참고)이 실제로 잘
+   출력을 그대로 물리면 ESP32 손상 위험, 최상위 `/server/`의 수계 펌프 펌웨어(현재 `pump_node_INA219_v25.ino`) 배선 메모 참고)이 실제로 잘
    되어 있는지 확인
 6. **부저/LCD 실물 배선 및 GPIO 핀 확정** — `server/dispatch/lcd_buzzer_output.py`의
    `BUZZER_PIN`(BCM 17), `LCD_I2C_ADDRESS`(기본 0x27, PCF8574 백팩 흔한 기본값)는
