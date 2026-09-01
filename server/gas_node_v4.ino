@@ -67,9 +67,9 @@
 // esp_task_wdt_init(seconds, panic)로 되돌려야 함 — 사용 중인 코어 버전 확인.
 
 // ---- 설정값 (실측 후 재조정) ----
-const char* WIFI_SSID = "SJHOUSE";       // TODO: 실제 WiFi 이름으로 교체
-const char* WIFI_PASS = "benjamin";   // TODO: 실제 WiFi 비밀번호로 교체
-const char* SERVER_IP = "121.133.229.156";    // TODO: 라즈베리파이 실제 IP로 교체 (없으면 무시돼도 무관)
+const char* WIFI_SSID = "YOUR_SSID";       // TODO: 실제 WiFi 이름으로 교체
+const char* WIFI_PASS = "YOUR_PASSWORD";   // TODO: 실제 WiFi 비밀번호로 교체
+const char* SERVER_IP = "YOUR_SERVER_IP";    // TODO: 라즈베리파이 실제 IP로 교체 (없으면 무시돼도 무관)
 const uint16_t SERVER_PORT = 9000;
 
 const char* NODE_ID = "gas_co2_01";

@@ -64,7 +64,7 @@
 // ---- 설정값 (실측 후 재조정) ----
 const char* WIFI_SSID = "YOUR_SSID";       // TODO: 실제 WiFi 이름으로 교체
 const char* WIFI_PASS = "YOUR_PASSWORD";   // TODO: 실제 WiFi 비밀번호로 교체
-const char* SERVER_IP = "192.168.0.10";    // TODO: 라즈베리파이 실제 IP로 교체 (없으면 무시돼도 무관)
+const char* SERVER_IP = "YOUR_SERVER_IP";    // TODO: 라즈베리파이 실제 IP로 교체 (없으면 무시돼도 무관)
 const uint16_t SERVER_PORT = 9000;
 
 const char* NODE_ID = "gas_co2_01";

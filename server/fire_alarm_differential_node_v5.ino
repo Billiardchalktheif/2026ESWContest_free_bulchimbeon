@@ -43,9 +43,9 @@
 #include <time.h>
 
 // ---- 설정값 (실측 후 재조정) ----
-const char* WIFI_SSID = "SJHOUSE";
-const char* WIFI_PASS = "benjamin";
-const char* SERVER_IP = "121.133.229.156";
+const char* WIFI_SSID = "YOUR_SSID";
+const char* WIFI_PASS = "YOUR_PASSWORD";
+const char* SERVER_IP = "YOUR_SERVER_IP";
 const uint16_t SERVER_PORT = 9000;
 
 const char* NODE_ID = "fire_zone_differential_01";

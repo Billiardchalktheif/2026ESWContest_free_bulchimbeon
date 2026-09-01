@@ -47,9 +47,9 @@
 // esp_task_wdt_init(seconds, panic)로 되돌려야 함 — 사용 중인 코어 버전 확인.
 
 // ---- 설정값 (실측 후 재조정) ----
-const char* WIFI_SSID = "SJHOUSE";
-const char* WIFI_PASS = "benjamin";
-const char* SERVER_IP = "121.133.229.156";
+const char* WIFI_SSID = "YOUR_SSID";
+const char* WIFI_PASS = "YOUR_PASSWORD";
+const char* SERVER_IP = "YOUR_SERVER_IP";
 const uint16_t SERVER_PORT = 9000;
 
 // 게이트웨이가 여러 대로 늘어날 경우(장차 확장) 게이트웨이마다 다르게 설정할 값.

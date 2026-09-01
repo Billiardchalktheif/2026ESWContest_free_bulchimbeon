@@ -45,7 +45,7 @@
 // ---- 설정값 (실측 후 재조정) ----
 const char* WIFI_SSID = "YOUR_SSID";
 const char* WIFI_PASS = "YOUR_PASSWORD";
-const char* SERVER_IP = "192.168.0.10";
+const char* SERVER_IP = "YOUR_SERVER_IP";
 const uint16_t SERVER_PORT = 9000;
 
 const int MUX_SIG_PIN = 32;   // ADC1

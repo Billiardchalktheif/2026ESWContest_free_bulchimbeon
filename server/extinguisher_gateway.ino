@@ -36,7 +36,7 @@
 // ---- 설정값 (실측 후 재조정) ----
 const char* WIFI_SSID = "YOUR_SSID";
 const char* WIFI_PASS = "YOUR_PASSWORD";
-const char* SERVER_IP = "192.168.0.10";
+const char* SERVER_IP = "YOUR_SERVER_IP";
 const uint16_t SERVER_PORT = 9000;
 
 // 게이트웨이가 여러 대로 늘어날 경우(장차 확장) 게이트웨이마다 다르게 설정할 값.

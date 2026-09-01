@@ -49,7 +49,7 @@ const int NODE_INDEX = 0;   // 0~3 (ext_01~ext_04에 대응)
 // ---- 게이트웨이 MAC 주소 (extinguisher_gateway_v3.ino 부팅 시 시리얼 출력으로 확인한 값) ----
 uint8_t gatewayAddress[6] = {0x20, 0x50, 0x0D, 0xD2, 0x25, 0x70};
 
-// ---- ESP-NOW 채널: 게이트웨이가 연결하는 공유기(WIFI_SSID="SJHOUSE") 채널과 반드시 일치 ----
+// ---- ESP-NOW 채널: 게이트웨이가 연결하는 공유기(WIFI_SSID) 채널과 반드시 일치 ----
 // 실제 채널을 모르면 공유기 관리 페이지에서 채널을 고정값(예:6)으로 바꿔두고 여기 맞출 것.
 const uint8_t WIFI_CHANNEL = 6;
 

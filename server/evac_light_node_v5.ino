@@ -52,9 +52,9 @@
 // esp_task_wdt_init(seconds, panic)로 되돌려야 함 — 사용 중인 코어 버전 확인.
 
 // ---- 설정값 (실제 배포 시 아래 3개만 채우면 됨) ----
-const char* WIFI_SSID = "SJHOUSE";
-const char* WIFI_PASS = "benjamin";
-const char* SERVER_IP = "121.133.229.156";
+const char* WIFI_SSID = "YOUR_SSID";
+const char* WIFI_PASS = "YOUR_PASSWORD";
+const char* SERVER_IP = "YOUR_SERVER_IP";
 const uint16_t SERVER_PORT = 9000;
 
 const int NUM_LIGHTS = 4;

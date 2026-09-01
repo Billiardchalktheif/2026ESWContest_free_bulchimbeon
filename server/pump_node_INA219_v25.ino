@@ -118,9 +118,9 @@
 // esp_task_wdt_init(seconds, panic)로 되돌려야 함 — 사용 중인 코어 버전 확인.
 
 // ---- 설정값 (실측 후 재조정) ----
-const char* WIFI_SSID = "SJHOUSE";
-const char* WIFI_PASS = "benjamin";
-const char* SERVER_IP = "121.133.229.156";   // 라즈베리파이 IP
+const char* WIFI_SSID = "YOUR_SSID";
+const char* WIFI_PASS = "YOUR_PASSWORD";
+const char* SERVER_IP = "YOUR_SERVER_IP";   // 라즈베리파이 IP
 const uint16_t SERVER_PORT = 9000;
 
 // INA219 I2C 주소 — 보드의 A0 패드를 VCC로 점퍼하면 0x40 -> 0x41로 변경됨
